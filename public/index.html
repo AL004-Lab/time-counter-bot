@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Таймер WebApp</title>
+    <title id="title">Таймер</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -12,13 +12,6 @@
             padding: 20px;
             background-color: var(--tg-theme-bg-color, #ffffff);
             color: var(--tg-theme-text-color, #000000);
-        }
-        #setup, #main {
-            display: none;
-        }
-        #timer-years, #timer-time {
-            font-size: 22px;
-            font-weight: bold;
         }
         .header {
             display: flex;
@@ -58,27 +51,24 @@
             max-width: 300px;
             margin-top: 10px;
         }
-        button:active {
-            opacity: 0.8;
-        }
     </style>
 </head>
 <body>
 
-    <!-- Хедер (аватар + никнейм слева, баланс справа) -->
+    <!-- Хедер -->
     <div class="header">
         <div class="profile">
             <img id="avatar" src="default-avatar.png" alt="Avatar">
             <span id="username">Загрузка...</span>
         </div>
         <div class="balance">
-            🏺 <span id="balance">0</span>
+            <span id="balance-label">🏺</span> <span id="balance">0</span>
         </div>
     </div>
 
-    <!-- Основной экран с таймером -->
+    <!-- Таймер -->
     <div id="main">
-        <h2>⏳ Таймер</h2>
+        <h2 id="title-header">⏳ Таймер</h2>
         <p id="timer-years">Загрузка...</p>
         <p id="timer-time"></p>
         <button id="goButton">GO</button>
@@ -88,26 +78,47 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        const userId = tg.initDataUnsafe?.user?.id || "test";
-        const username = tg.initDataUnsafe?.user?.username || `User${userId}`;
-        const avatar = tg.initDataUnsafe?.user?.photo_url || "default-avatar.png";
+        // Определение языка пользователя
+        let userLang = tg.initDataUnsafe?.user?.language_code || "en";
+        if (!["ru", "en"].includes(userLang)) userLang = "en"; // Если язык не поддерживается, ставим английский
 
-        document.getElementById("username").innerText = `@${username}`;
-        document.getElementById("avatar").src = avatar;
+        // Словарь перевода
+        const translations = {
+            en: {
+                title: "Timer",
+                balance: "🏺",
+                go: "GO",
+                notSet: "⏳ Timer is not set",
+                expired: "⏳ Time has expired",
+            },
+            ru: {
+                title: "Таймер",
+                balance: "🏺",
+                go: "GO",
+                notSet: "⏳ Таймер не установлен",
+                expired: "⏳ Время истекло",
+            }
+        };
+
+        // Применение перевода
+        document.getElementById("title").innerText = translations[userLang].title;
+        document.getElementById("title-header").innerText = translations[userLang].title;
+        document.getElementById("balance-label").innerText = translations[userLang].balance;
+        document.getElementById("goButton").innerText = translations[userLang].go;
 
         async function updateTimer() {
-            let response = await fetch(`/api/user/${userId}`);
+            let response = await fetch(`/api/user/${tg.initDataUnsafe?.user?.id || "test"}`);
             let data = await response.json();
 
             if (!data.endTime) {
-                document.getElementById("timer-years").innerText = "⏳ Таймер не установлен";
+                document.getElementById("timer-years").innerText = translations[userLang].notSet;
                 document.getElementById("timer-time").innerText = "";
                 return;
             }
 
             let diff = data.endTime - Date.now();
             if (diff <= 0) {
-                document.getElementById("timer-years").innerText = "⏳ Время истекло!";
+                document.getElementById("timer-years").innerText = translations[userLang].expired;
                 document.getElementById("timer-time").innerText = "";
                 return;
             }
@@ -125,26 +136,8 @@
             document.getElementById("balance").innerText = `${data.points || 0}`;
         }
 
-        document.getElementById("goButton").addEventListener("click", async () => {
-            let response = await fetch(`/api/user/${userId}/add-points`, { method: "POST" });
-            let data = await response.json();
-            document.getElementById("balance").innerText = `${data.points}`;
-        });
-
-        async function checkUser() {
-            let response = await fetch(`/api/user/${userId}`);
-            let data = await response.json();
-
-            if (!data.endTime) {
-                document.getElementById("setup").style.display = "block";
-            } else {
-                document.getElementById("main").style.display = "block";
-                updateTimer();
-                setInterval(updateTimer, 1000);
-            }
-        }
-
-        checkUser();
+        setInterval(updateTimer, 1000);
+        updateTimer();
     </script>
 
 </body>
