@@ -2,6 +2,7 @@ require("dotenv").config();
 const { Telegraf } = require("telegraf");
 const express = require("express");
 const fs = require("fs");
+const path = require("path");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const app = express();
@@ -108,6 +109,14 @@ bot.command("checkin", (ctx) => {
 
     ctx.reply(`✅ День подтверждён! Ты получил +5 баллов. 🎉\n🕰 Осталось: *${getTimeLeft(usersData[userId].endTime)}*`, { parse_mode: "Markdown" });
 });
+
+// **Обработчик GET-запросов для корневого маршрута `/` (исправляет "Cannot GET /")**
+app.get("/", (req, res) => {
+    res.send("Привет! WebApp работает корректно. 🚀");
+});
+
+// **Подключаем статические файлы для WebApp**
+app.use(express.static(path.join(__dirname, "public")));
 
 // **Настройка Webhook**
 app.use(express.json());
