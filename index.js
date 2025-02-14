@@ -6,11 +6,10 @@ const fs = require("fs");
 const app = express();
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-// Храним пользователей в файле (на старте загружаем данные)
 let usersData = {};
 const DATA_FILE = "users.json";
 
-// Загружаем сохранённые данные
+// Загружаем данные пользователей
 if (fs.existsSync(DATA_FILE)) {
     usersData = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
 }
@@ -25,9 +24,13 @@ bot.start((ctx) => {
     const userId = ctx.from.id;
     
     if (!usersData[userId]) {
+        // Устанавливаем стартовую дату (через 1 год)
+        let endDate = new Date();
+        endDate.setFullYear(endDate.getFullYear() + 1); 
+
         usersData[userId] = {
             username: ctx.from.username || `User${userId}`,
-            daysLeft: 365,
+            endTime: endDate.getTime(), // Сохраняем конечную дату как timestamp
             points: 0,
             lastCheckIn: null,
         };
@@ -35,8 +38,11 @@ bot.start((ctx) => {
     }
 
     ctx.reply(
-        `Привет, ${ctx.from.first_name}! 🚀\n\nДобро пожаловать в "Счётчик времени".\n\nТы можешь:\n✔️ Запустить обратный отсчёт\n✔️ Ежедневно подтверждать активность\n✔️ Зарабатывать баллы за выполнение заданий\n\n🔽 Нажми кнопку, чтобы открыть WebApp!`,
+        `Привет, ${ctx.from.first_name}! 🚀\n\n` +
+        `Ты запустил таймер, осталось:\n\n⏳ *${getTimeLeft(usersData[userId].endTime)}* ⏳\n\n` +
+        `Нажми кнопку, чтобы открыть WebApp и следить за временем!`,
         {
+            parse_mode: "Markdown",
             reply_markup: {
                 inline_keyboard: [[
                     { text: "🚀 Открыть WebApp", web_app: { url: process.env.WEBAPP_URL } }
@@ -46,13 +52,46 @@ bot.start((ctx) => {
     );
 });
 
+// **Функция для расчёта оставшегося времени**
+function getTimeLeft(endTime) {
+    const now = new Date().getTime();
+    const diff = endTime - now;
+
+    if (diff <= 0) {
+        return "⏳ Время истекло!";
+    }
+
+    const years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365));
+    const months = Math.floor((diff % (1000 * 60 * 60 * 24 * 365)) / (1000 * 60 * 60 * 24 * 30));
+    const days = Math.floor((diff % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    return `${years} г. ${months} мес. ${days} д. ${hours} ч. ${minutes} м. ${seconds} с.`;
+}
+
+// **Команда /timer — показывает оставшееся время**
+bot.command("timer", (ctx) => {
+    const userId = ctx.from.id;
+
+    if (!usersData[userId]) {
+        return ctx.reply("Ты ещё не запустил таймер! Используй /start.");
+    }
+
+    ctx.reply(
+        `⏳ *Твой таймер*\n\n🕰 Осталось: *${getTimeLeft(usersData[userId].endTime)}*`,
+        { parse_mode: "Markdown" }
+    );
+});
+
 // **Чек-ин (подтверждение дня)**
 bot.command("checkin", (ctx) => {
     const userId = ctx.from.id;
     const today = new Date().toISOString().split("T")[0];
 
     if (!usersData[userId]) {
-        return ctx.reply("Ты ещё не запустил свой таймер! Используй /start.");
+        return ctx.reply("Ты ещё не запустил таймер! Используй /start.");
     }
 
     if (usersData[userId].lastCheckIn === today) {
@@ -61,36 +100,10 @@ bot.command("checkin", (ctx) => {
 
     usersData[userId].lastCheckIn = today;
     usersData[userId].points += 5;
-    usersData[userId].daysLeft = Math.max(usersData[userId].daysLeft - 1, 0);
     saveData();
 
-    ctx.reply(`✅ День подтверждён! Ты получил +5 баллов. 🎉\n📉 Осталось ${usersData[userId].daysLeft} дней.`);
+    ctx.reply(`✅ День подтверждён! Ты получил +5 баллов. 🎉\n🕰 Осталось: *${getTimeLeft(usersData[userId].endTime)}*`, { parse_mode: "Markdown" });
 });
-
-// **Проверка состояния таймера**
-bot.command("status", (ctx) => {
-    const userId = ctx.from.id;
-
-    if (!usersData[userId]) {
-        return ctx.reply("Ты ещё не запустил свой таймер! Используй /start.");
-    }
-
-    ctx.reply(
-        `⏳ *Твой таймер*\n🕰 Осталось: ${usersData[userId].daysLeft} дней\n⭐ Баллы: ${usersData[userId].points}`,
-        { parse_mode: "Markdown" }
-    );
-});
-
-// **Напоминания (бот проверяет, кто не заходил более 24 часов)**
-setInterval(() => {
-    const today = new Date().toISOString().split("T")[0];
-
-    for (const userId in usersData) {
-        if (usersData[userId].lastCheckIn !== today) {
-            bot.telegram.sendMessage(userId, "⏰ Ты забыл подтвердить день! Не пропусти свою награду. Введи /checkin.");
-        }
-    }
-}, 1000 * 60 * 60 * 24); // Проверка раз в сутки
 
 // **Запускаем Express-сервер для WebApp**
 app.use(express.static("public"));
