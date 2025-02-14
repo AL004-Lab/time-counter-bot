@@ -20,21 +20,26 @@
             font-size: 22px;
             font-weight: bold;
         }
-        .profile {
+        .header {
             display: flex;
             align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
+            justify-content: flex-start;
+            padding: 10px;
         }
-        .profile img {
+        .header img {
             width: 50px;
             height: 50px;
             border-radius: 50%;
             margin-right: 10px;
         }
-        .profile span {
+        .header span {
             font-size: 18px;
             font-weight: bold;
+        }
+        #balance {
+            font-size: 22px;
+            font-weight: bold;
+            margin: 20px 0;
         }
         button {
             padding: 12px 20px;
@@ -55,8 +60,8 @@
 </head>
 <body>
 
-    <!-- Аватар и никнейм -->
-    <div class="profile">
+    <!-- Хедер (аватар + никнейм) -->
+    <div class="header">
         <img id="avatar" src="default-avatar.png" alt="Avatar">
         <span id="username">Загрузка...</span>
     </div>
@@ -74,7 +79,8 @@
         <h2>⏳ Таймер</h2>
         <p id="timer-years">Загрузка...</p>
         <p id="timer-time"></p>
-        <button id="goButton">GO (0)</button>
+        <p id="balance">Баланс: 0</p>
+        <button id="goButton">GO</button>
     </div>
 
     <script>
@@ -82,7 +88,7 @@
         tg.expand();
 
         const userId = tg.initDataUnsafe?.user?.id || "test";
-        const username = tg.initDataUnsafe?.user?.username || "User";
+        const username = tg.initDataUnsafe?.user?.username || `User${userId}`;
         const avatar = tg.initDataUnsafe?.user?.photo_url || "default-avatar.png";
 
         document.getElementById("username").innerText = `@${username}`;
@@ -147,13 +153,13 @@
 
             document.getElementById("timer-years").innerText = `Осталось: ${years} лет, ${weeks} недель, ${days} дней`;
             document.getElementById("timer-time").innerText = `${hours} ч. ${minutes} м. ${seconds} с.`;
-            document.getElementById("goButton").innerText = `GO (${data.points})`;
+            document.getElementById("balance").innerText = `Баланс: ${data.points}`;
         }
 
         document.getElementById("goButton").addEventListener("click", async () => {
             let response = await fetch(`/api/user/${userId}/add-points`, { method: "POST" });
             let data = await response.json();
-            document.getElementById("goButton").innerText = `GO (${data.points})`;
+            document.getElementById("balance").innerText = `Баланс: ${data.points}`;
         });
 
         checkUser();
