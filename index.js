@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const fetch = require("node-fetch");
 const fs = require("fs");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
@@ -10,6 +11,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, "public"))); // Обслуживание статики
 
 let usersData = {};
 const DATA_FILE = "usersData.json";
@@ -25,6 +27,11 @@ if (fs.existsSync(DATA_FILE)) {
 function saveData() {
     fs.writeFileSync(DATA_FILE, JSON.stringify(usersData));
 }
+
+// 📌 Главная страница
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 // 📌 API: Получение данных пользователя
 app.get("/api/user/:userId", (req, res) => {
@@ -42,7 +49,7 @@ app.get("/api/user/:userId", (req, res) => {
     res.json({
         endTime: usersData[userId].endTime,
         points: usersData[userId].points,
-        hacks: usersData[userId].hacks.slice(-3) // Отправляем последние 3 хака
+        hacks: usersData[userId].hacks.slice(-3)
     });
 });
 
