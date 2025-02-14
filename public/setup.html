@@ -37,10 +37,16 @@
                 return;
             }
 
+            let birthYear = new Date(birthDate).getFullYear();
+            let currentYear = new Date().getFullYear();
+            let userAge = currentYear - birthYear;
+            let remainingYears = 100 - userAge;
+            let endTime = Date.now() + remainingYears * 365 * 24 * 60 * 60 * 1000;
+
             fetch(`/api/user/${userId}/setup`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ birthDate }),
+                body: JSON.stringify({ endTime }),
             })
             .then(res => res.json())
             .then(data => {
