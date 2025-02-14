@@ -42,23 +42,9 @@
     <button onclick="confirmDay()">✅ Подтвердить день</button>
 
     <script>
-        let tg = window.Telegram.WebApp;  // Получаем API Telegram
-        tg.expand();  // Растягиваем WebApp на весь экран
-        tg.MainButton.text = "Подтвердить день";  
-        tg.MainButton.show();
-    
-        function confirmDay() {
-            let daysLeft = localStorage.getItem("daysLeft") || 365;
-            if (daysLeft > 0) {
-                daysLeft--;
-                localStorage.setItem("daysLeft", daysLeft);
-                document.getElementById("timer").innerText = `Осталось: ${daysLeft} дней`;
-                tg.MainButton.setText("✅ День подтверждён!");
-                tg.MainButton.show();
-            }
-        }
-    
-        document.getElementById("timer").innerText = `Осталось: ${localStorage.getItem("daysLeft") || 365} дней`;
+        let tg = window.Telegram.WebApp;  
+        tg.expand(); // Разворачивает WebApp на весь экран
+        console.log("Telegram WebApp API загружен!");
     </script>
 
 </body>
