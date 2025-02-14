@@ -2,24 +2,16 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Счётчик обратного отсчёта</title>
+    <title>Таймер WebApp</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        h1 {
-            color: #333;
         }
         #timer {
             font-size: 24px;
             font-weight: bold;
-            margin-top: 10px;
         }
         button {
             padding: 10px 20px;
@@ -30,21 +22,45 @@
             cursor: pointer;
             border-radius: 5px;
         }
-        button:hover {
-            background: #0056b3;
-        }
     </style>
 </head>
 <body>
 
-    <h1>Твой обратный отсчёт</h1>
-    <p id="timer">Осталось: 365 дней</p>
-    <button onclick="confirmDay()">✅ Подтвердить день</button>
+    <h1>⏳ Таймер</h1>
+    <p id="timer">Загрузка...</p>
+    <button id="goButton">GO (0)</button>
 
     <script>
-        let tg = window.Telegram.WebApp;  
-        tg.expand(); // Разворачивает WebApp на весь экран
-        console.log("Telegram WebApp API загружен!");
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const userId = tg.initDataUnsafe.user?.id || "test";
+        const goButton = document.getElementById("goButton");
+
+        function updateTimer() {
+            fetch(`/api/user/${userId}`)
+                .then(res => res.json())
+                .then(data => {
+                    let diff = data.endTime - Date.now();
+                    let days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    let seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                    document.getElementById("timer").innerText = `${days} д. ${hours} ч. ${minutes} м. ${seconds} с.`;
+                    goButton.innerText = `GO (${data.points})`;
+                });
+        }
+
+        goButton.addEventListener("click", () => {
+            fetch(`/api/user/${userId}/add-points`, { method: "POST" })
+                .then(res => res.json())
+                .then(data => {
+                    goButton.innerText = `GO (${data.points})`;
+                });
+        });
+
+        setInterval(updateTimer, 1000);
+        updateTimer();
     </script>
 
 </body>

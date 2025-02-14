@@ -11,11 +11,10 @@ const PORT = process.env.PORT || 3000;
 const WEBHOOK_PATH = `/bot${process.env.BOT_TOKEN}`;
 const WEBHOOK_URL = `${process.env.WEBAPP_URL}${WEBHOOK_PATH}`;
 
-// Храним пользователей в файле (на старте загружаем данные)
 let usersData = {};
 const DATA_FILE = "users.json";
 
-// Загружаем сохранённые данные
+// Загружаем данные пользователей
 if (fs.existsSync(DATA_FILE)) {
     usersData = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
 }
@@ -34,14 +33,12 @@ function getTimeLeft(endTime) {
         return "⏳ Время истекло!";
     }
 
-    const years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365));
-    const months = Math.floor((diff % (1000 * 60 * 60 * 24 * 365)) / (1000 * 60 * 60 * 24 * 30));
-    const days = Math.floor((diff % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-    return `${years} г. ${months} мес. ${days} д. ${hours} ч. ${minutes} м. ${seconds} с.`;
+    return `${days} д. ${hours} ч. ${minutes} м. ${seconds} с.`;
 }
 
 // **Обработчик команды /start**
@@ -64,7 +61,8 @@ bot.start((ctx) => {
     ctx.reply(
         `Привет, ${ctx.from.first_name}! 🚀\n\n` +
         `Ты запустил таймер, осталось:\n\n⏳ *${getTimeLeft(usersData[userId].endTime)}* ⏳\n\n` +
-        `Нажми кнопку, чтобы открыть WebApp и следить за временем!`,
+        `Твой баланс: *${usersData[userId].points}* баллов.\n\n` +
+        `Нажми кнопку, чтобы открыть WebApp и начать зарабатывать баллы!`,
         {
             parse_mode: "Markdown",
             reply_markup: {
@@ -76,41 +74,39 @@ bot.start((ctx) => {
     );
 });
 
-// **Команда /timer — показывает оставшееся время**
-bot.command("timer", (ctx) => {
+// **Команда /points — показывает баланс пользователя**
+bot.command("points", (ctx) => {
     const userId = ctx.from.id;
-
     if (!usersData[userId]) {
         return ctx.reply("Ты ещё не запустил таймер! Используй /start.");
     }
-
-    ctx.reply(
-        `⏳ *Твой таймер*\n\n🕰 Осталось: *${getTimeLeft(usersData[userId].endTime)}*`,
-        { parse_mode: "Markdown" }
-    );
+    ctx.reply(`⭐ Твой баланс: *${usersData[userId].points}* баллов`, { parse_mode: "Markdown" });
 });
 
-// **Чек-ин (подтверждение дня)**
-bot.command("checkin", (ctx) => {
-    const userId = ctx.from.id;
-    const today = new Date().toISOString().split("T")[0];
-
+// **API для WebApp (получение данных о таймере и балансе)**
+app.get("/api/user/:userId", (req, res) => {
+    const userId = req.params.userId;
     if (!usersData[userId]) {
-        return ctx.reply("Ты ещё не запустил таймер! Используй /start.");
+        return res.status(404).json({ error: "Пользователь не найден" });
     }
+    res.json({
+        endTime: usersData[userId].endTime,
+        points: usersData[userId].points,
+    });
+});
 
-    if (usersData[userId].lastCheckIn === today) {
-        return ctx.reply("Ты уже подтвердил день сегодня! Возвращайся завтра. ⏳");
+// **Обработчик получения баллов за нажатие на "GO"**
+app.post("/api/user/:userId/add-points", express.json(), (req, res) => {
+    const userId = req.params.userId;
+    if (!usersData[userId]) {
+        return res.status(404).json({ error: "Пользователь не найден" });
     }
-
-    usersData[userId].lastCheckIn = today;
     usersData[userId].points += 5;
     saveData();
-
-    ctx.reply(`✅ День подтверждён! Ты получил +5 баллов. 🎉\n🕰 Осталось: *${getTimeLeft(usersData[userId].endTime)}*`, { parse_mode: "Markdown" });
+    res.json({ points: usersData[userId].points });
 });
 
-// **Обработчик GET-запросов для корневого маршрута `/` (исправляет "Cannot GET /")**
+// **Обработчик GET-запросов для корневого маршрута `/`**
 app.get("/", (req, res) => {
     res.send("Привет! WebApp работает корректно. 🚀");
 });
