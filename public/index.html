@@ -12,7 +12,7 @@
         #setup, #main {
             display: none;
         }
-        #timer {
+        #timer-years, #timer-time {
             font-size: 24px;
             font-weight: bold;
         }
@@ -40,7 +40,8 @@
     <!-- Основной экран с таймером -->
     <div id="main">
         <h1>⏳ Таймер</h1>
-        <p id="timer">Загрузка...</p>
+        <p id="timer-years">Загрузка...</p>
+        <p id="timer-time"></p>
         <button id="goButton">GO (0)</button>
     </div>
 
@@ -94,16 +95,21 @@
 
             let diff = data.endTime - Date.now();
             if (diff <= 0) {
-                document.getElementById("timer").innerText = "⏳ Время истекло!";
+                document.getElementById("timer-years").innerText = "⏳ Время истекло!";
+                document.getElementById("timer-time").innerText = "";
                 return;
             }
 
-            let days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            let years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365));
+            let weeks = Math.floor((diff % (1000 * 60 * 60 * 24 * 365)) / (1000 * 60 * 60 * 24 * 7));
+            let days = Math.floor((diff % (1000 * 60 * 60 * 24 * 7)) / (1000 * 60 * 60 * 24));
+
             let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             let seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-            document.getElementById("timer").innerText = `${days} д. ${hours} ч. ${minutes} м. ${seconds} с.`;
+            document.getElementById("timer-years").innerText = `Осталось: ${years} лет, ${weeks} недель, ${days} дней`;
+            document.getElementById("timer-time").innerText = `${hours} ч. ${minutes} м. ${seconds} с.`;
             document.getElementById("goButton").innerText = `GO (${data.points})`;
         }
 
