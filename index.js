@@ -6,11 +6,11 @@ const fs = require("fs");
 const app = express();
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-// Храним пользователей и их таймеры (на старте из JSON-файла)
+// Храним пользователей в файле (на старте загружаем данные)
 let usersData = {};
 const DATA_FILE = "users.json";
 
-// Загружаем сохранённые данные пользователей
+// Загружаем сохранённые данные
 if (fs.existsSync(DATA_FILE)) {
     usersData = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
 }
@@ -99,7 +99,8 @@ app.get("/", (req, res) => {
     res.send("WebApp работает! 🚀");
 });
 
-app.listen(3000, () => console.log("Сервер запущен на http://localhost:3000"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));
 
 // **Запускаем бота**
 bot.launch();
