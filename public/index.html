@@ -34,28 +34,45 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        const userId = tg.initDataUnsafe.user?.id || "test";
-        const goButton = document.getElementById("goButton");
+        const userId = tg.initDataUnsafe?.user?.id || "test"; // Используем реальный ID
 
         function updateTimer() {
             fetch(`/api/user/${userId}`)
                 .then(res => res.json())
                 .then(data => {
+                    if (!data.endTime || !data.points) {
+                        document.getElementById("timer").innerText = "Ошибка загрузки данных";
+                        return;
+                    }
+
                     let diff = data.endTime - Date.now();
+                    if (diff <= 0) {
+                        document.getElementById("timer").innerText = "⏳ Время истекло!";
+                        return;
+                    }
+
                     let days = Math.floor(diff / (1000 * 60 * 60 * 24));
                     let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                     let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                     let seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
                     document.getElementById("timer").innerText = `${days} д. ${hours} ч. ${minutes} м. ${seconds} с.`;
-                    goButton.innerText = `GO (${data.points})`;
+                    document.getElementById("goButton").innerText = `GO (${data.points})`;
+                })
+                .catch(error => {
+                    document.getElementById("timer").innerText = "Ошибка подключения";
+                    console.error("Ошибка получения данных:", error);
                 });
         }
 
-        goButton.addEventListener("click", () => {
+        document.getElementById("goButton").addEventListener("click", () => {
             fetch(`/api/user/${userId}/add-points`, { method: "POST" })
                 .then(res => res.json())
                 .then(data => {
-                    goButton.innerText = `GO (${data.points})`;
+                    document.getElementById("goButton").innerText = `GO (${data.points})`;
+                })
+                .catch(error => {
+                    console.error("Ошибка начисления баллов:", error);
                 });
         });
 
