@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Счётчик обратного отсчёта</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        #timer {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            border: none;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Твой обратный отсчёт</h1>
+    <p id="timer">Осталось: 365 дней</p>
+    <button onclick="confirmDay()">✅ Подтвердить день</button>
+
+    <script>
+        let daysLeft = localStorage.getItem("daysLeft") || 365;
+
+        function confirmDay() {
+            if (daysLeft > 0) {
+                daysLeft--;
+                localStorage.setItem("daysLeft", daysLeft);
+                document.getElementById("timer").innerText = `Осталось: ${daysLeft} дней`;
+                alert("✅ День подтверждён!");
+            }
+        }
+
+        document.getElementById("timer").innerText = `Осталось: ${daysLeft} дней`;
+    </script>
+
+</body>
+</html>
