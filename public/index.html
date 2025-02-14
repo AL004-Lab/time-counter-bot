@@ -40,6 +40,11 @@
         .header .balance {
             font-size: 18px;
             font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+        .header .balance span {
+            margin-left: 5px;
         }
         button {
             padding: 12px 20px;
@@ -66,7 +71,9 @@
             <img id="avatar" src="default-avatar.png" alt="Avatar">
             <span id="username">Загрузка...</span>
         </div>
-        <span id="balance" class="balance">Баланс: 0</span>
+        <div class="balance">
+            🏺 <span id="balance">0</span>
+        </div>
     </div>
 
     <!-- Экран настройки -->
@@ -155,13 +162,13 @@
 
             document.getElementById("timer-years").innerText = `Осталось: ${years} лет, ${weeks} недель, ${days} дней`;
             document.getElementById("timer-time").innerText = `${hours} ч. ${minutes} м. ${seconds} с.`;
-            document.getElementById("balance").innerText = `Баланс: ${data.points}`;
+            document.getElementById("balance").innerText = `${data.points}`;
         }
 
         document.getElementById("goButton").addEventListener("click", async () => {
             let response = await fetch(`/api/user/${userId}/add-points`, { method: "POST" });
             let data = await response.json();
-            document.getElementById("balance").innerText = `Баланс: ${data.points}`;
+            document.getElementById("balance").innerText = `${data.points}`;
         });
 
         checkUser();
