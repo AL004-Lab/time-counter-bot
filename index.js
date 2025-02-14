@@ -27,28 +27,9 @@ const saveData = () => {
 // **Обслуживаем WebApp (статические файлы)**
 app.use(express.static(path.join(__dirname, "public")));
 
-// **Перенаправляем `/` на страницу настройки, если таймер не установлен**
+// **Перенаправляем `/` на `index.html`**
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "setup.html"));
-});
-
-// **API для сохранения даты рождения и установки таймера**
-app.post("/api/user/:userId/setup", express.json(), (req, res) => {
-    const userId = req.params.userId;
-    const { birthDate } = req.body;
-
-    if (!birthDate) {
-        return res.status(400).json({ error: "Дата рождения обязательна" });
-    }
-
-    const birthYear = new Date(birthDate).getFullYear();
-    const targetAge = 100;
-    const endTime = new Date(birthYear + targetAge, 0, 1).getTime(); // 100 лет от даты рождения
-
-    usersData[userId] = { birthDate, endTime, points: 0 };
-    saveData();
-
-    res.json({ success: true, endTime });
+    res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // **API для получения данных пользователя**
@@ -56,11 +37,7 @@ app.get("/api/user/:userId", (req, res) => {
     const userId = req.params.userId;
 
     if (!usersData[userId]) {
-        usersData[userId] = {
-            endTime: Date.now() + 365 * 24 * 60 * 60 * 1000, // Устанавливаем таймер на 1 год
-            points: 0
-        };
-        saveData();
+        return res.status(404).json({ error: "Пользователь не найден" });
     }
 
     res.json({
@@ -69,15 +46,37 @@ app.get("/api/user/:userId", (req, res) => {
     });
 });
 
-// **API для начисления баллов**
+// **API для установки таймера (рассчитывается на основе возраста)**
+app.post("/api/user/:userId/setup", express.json(), (req, res) => {
+    const userId = req.params.userId;
+    const { endTime } = req.body;
+
+    if (!usersData[userId]) {
+        usersData[userId] = { points: 0 };
+    }
+
+    usersData[userId].endTime = endTime;
+    saveData();
+    res.json({ success: true });
+});
+
+// **API для начисления баллов за нажатие GO**
 app.post("/api/user/:userId/add-points", express.json(), (req, res) => {
     const userId = req.params.userId;
+
     if (!usersData[userId]) {
         return res.status(404).json({ error: "Пользователь не найден" });
     }
+
     usersData[userId].points += 5;
     saveData();
     res.json({ points: usersData[userId].points });
+});
+
+// **Настройка Webhook для Telegram**
+app.use(express.json());
+app.post(WEBHOOK_PATH, (req, res) => {
+    bot.handleUpdate(req.body, res);
 });
 
 // **Запускаем сервер**

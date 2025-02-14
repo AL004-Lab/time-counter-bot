@@ -9,6 +9,9 @@
             font-family: Arial, sans-serif;
             text-align: center;
         }
+        #setup, #main {
+            display: none;
+        }
         #timer {
             font-size: 24px;
             font-weight: bold;
@@ -26,56 +29,91 @@
 </head>
 <body>
 
-    <h1>⏳ Таймер</h1>
-    <p id="timer">Загрузка...</p>
-    <button id="goButton">GO (0)</button>
+    <!-- Экран настройки -->
+    <div id="setup">
+        <h1>🚀 Введите дату рождения</h1>
+        <input type="date" id="birthdate">
+        <br><br>
+        <button id="startButton">Старт</button>
+    </div>
+
+    <!-- Основной экран с таймером -->
+    <div id="main">
+        <h1>⏳ Таймер</h1>
+        <p id="timer">Загрузка...</p>
+        <button id="goButton">GO (0)</button>
+    </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
-    
-        const userId = tg.initDataUnsafe?.user?.id || "test"; // Фиксируем userId
-    
-        async function updateTimer() {
-            try {
-                let response = await fetch(`/api/user/${userId}`);
-                let data = await response.json();
-    
-                if (!data.endTime || !data.points) {
-                    document.getElementById("timer").innerText = "Ошибка загрузки данных";
-                    return;
-                }
-    
-                let diff = data.endTime - Date.now();
-                if (diff <= 0) {
-                    document.getElementById("timer").innerText = "⏳ Время истекло!";
-                    return;
-                }
-    
-                let days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                let seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    
-                document.getElementById("timer").innerText = `${days} д. ${hours} ч. ${minutes} м. ${seconds} с.`;
-                document.getElementById("goButton").innerText = `GO (${data.points})`;
-            } catch (error) {
-                document.getElementById("timer").innerText = "Ошибка подключения";
+
+        const userId = tg.initDataUnsafe?.user?.id || "test";
+
+        async function checkUser() {
+            let response = await fetch(`/api/user/${userId}`);
+            let data = await response.json();
+
+            if (!data.endTime) {
+                document.getElementById("setup").style.display = "block";
+            } else {
+                document.getElementById("main").style.display = "block";
+                updateTimer();
+                setInterval(updateTimer, 1000);
             }
         }
-    
-        document.getElementById("goButton").addEventListener("click", async () => {
-            try {
-                let response = await fetch(`/api/user/${userId}/add-points`, { method: "POST" });
-                let data = await response.json();
-                document.getElementById("goButton").innerText = `GO (${data.points})`;
-            } catch (error) {
-                console.error("Ошибка начисления баллов:", error);
+
+        document.getElementById("startButton").addEventListener("click", async () => {
+            let birthdate = document.getElementById("birthdate").value;
+            if (!birthdate) {
+                alert("Введите дату рождения!");
+                return;
             }
+
+            let birthYear = new Date(birthdate).getFullYear();
+            let currentYear = new Date().getFullYear();
+            let age = currentYear - birthYear;
+            let remainingYears = 100 - age;
+            let endTime = Date.now() + remainingYears * 365 * 24 * 60 * 60 * 1000;
+
+            await fetch(`/api/user/${userId}/setup`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ endTime })
+            });
+
+            document.getElementById("setup").style.display = "none";
+            document.getElementById("main").style.display = "block";
+            updateTimer();
+            setInterval(updateTimer, 1000);
         });
-    
-        setInterval(updateTimer, 1000);
-        updateTimer();
+
+        async function updateTimer() {
+            let response = await fetch(`/api/user/${userId}`);
+            let data = await response.json();
+
+            let diff = data.endTime - Date.now();
+            if (diff <= 0) {
+                document.getElementById("timer").innerText = "⏳ Время истекло!";
+                return;
+            }
+
+            let days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            let seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            document.getElementById("timer").innerText = `${days} д. ${hours} ч. ${minutes} м. ${seconds} с.`;
+            document.getElementById("goButton").innerText = `GO (${data.points})`;
+        }
+
+        document.getElementById("goButton").addEventListener("click", async () => {
+            let response = await fetch(`/api/user/${userId}/add-points`, { method: "POST" });
+            let data = await response.json();
+            document.getElementById("goButton").innerText = `GO (${data.points})`;
+        });
+
+        checkUser();
     </script>
 
 </body>
