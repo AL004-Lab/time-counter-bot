@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Настройка Таймера</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        input, button {
+            font-size: 18px;
+            padding: 10px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🛠 Настройка Таймера</h1>
+    <p>Введите вашу дату рождения:</p>
+    <input type="date" id="birthDate">
+    <br>
+    <button onclick="setupTimer()">🚀 Запустить таймер</button>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const userId = tg.initDataUnsafe?.user?.id || "test";
+
+        function setupTimer() {
+            const birthDate = document.getElementById("birthDate").value;
+            if (!birthDate) {
+                alert("❌ Укажите дату рождения!");
+                return;
+            }
+
+            fetch(`/api/user/${userId}/setup`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ birthDate }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = "/timer.html"; // Переход на основную страницу таймера
+                } else {
+                    alert("Ошибка: " + data.error);
+                }
+            })
+            .catch(error => console.error("Ошибка настройки:", error));
+        }
+    </script>
+
+</body>
+</html>

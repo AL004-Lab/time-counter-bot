@@ -27,22 +27,41 @@ const saveData = () => {
 // **Обслуживаем WebApp (статические файлы)**
 app.use(express.static(path.join(__dirname, "public")));
 
-// **Перенаправляем `/` на `index.html`**
+// **Перенаправляем `/` на страницу настройки, если таймер не установлен**
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
+    res.sendFile(path.join(__dirname, "public", "setup.html"));
+});
+
+// **API для сохранения даты рождения и установки таймера**
+app.post("/api/user/:userId/setup", express.json(), (req, res) => {
+    const userId = req.params.userId;
+    const { birthDate } = req.body;
+
+    if (!birthDate) {
+        return res.status(400).json({ error: "Дата рождения обязательна" });
+    }
+
+    const birthYear = new Date(birthDate).getFullYear();
+    const targetAge = 100;
+    const endTime = new Date(birthYear + targetAge, 0, 1).getTime(); // 100 лет от даты рождения
+
+    usersData[userId] = { birthDate, endTime, points: 0 };
+    saveData();
+
+    res.json({ success: true, endTime });
 });
 
 // **API для получения данных пользователя**
 app.get("/api/user/:userId", (req, res) => {
     const userId = req.params.userId;
 
-    if (!usersData[userId]) {
-        usersData[userId] = { endTime: Date.now() + 365 * 24 * 60 * 60 * 1000, points: 0 };
-        saveData();
+    if (!usersData[userId] || !usersData[userId].endTime) {
+        return res.status(404).json({ error: "Пользователь не настроен" });
     }
 
     res.json({
-        endTime: usersData[userId].endTime || Date.now() + 365 * 24 * 60 * 60 * 1000,
+        birthDate: usersData[userId].birthDate,
+        endTime: usersData[userId].endTime,
         points: usersData[userId].points || 0,
     });
 });

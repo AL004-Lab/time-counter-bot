@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Таймер</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #timer {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            border: none;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>⏳ Таймер</h1>
+    <p id="timer">Загрузка...</p>
+    <button id="goButton">GO (0)</button>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const userId = tg.initDataUnsafe?.user?.id || "test";
+
+        function updateTimer() {
+            fetch(`/api/user/${userId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.endTime) {
+                        window.location.href = "/setup.html"; // Перенаправление на настройку
+                        return;
+                    }
+
+                    let diff = data.endTime - Date.now();
+                    let days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    let seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                    document.getElementById("timer").innerText = `${days} д. ${hours} ч. ${minutes} м. ${seconds} с.`;
+                    document.getElementById("goButton").innerText = `GO (${data.points})`;
+                });
+        }
+
+        document.getElementById("goButton").addEventListener("click", () => {
+            fetch(`/api/user/${userId}/add-points`, { method: "POST" })
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("goButton").innerText = `GO (${data.points})`;
+                });
+        });
+
+        setInterval(updateTimer, 1000);
+        updateTimer();
+    </script>
+
+</body>
+</html>
