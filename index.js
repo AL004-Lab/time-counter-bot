@@ -24,66 +24,15 @@ const saveData = () => {
     fs.writeFileSync(DATA_FILE, JSON.stringify(usersData, null, 2));
 };
 
-// **Функция расчёта оставшегося времени**
-function getTimeLeft(endTime) {
-    const now = new Date().getTime();
-    const diff = endTime - now;
+// **Обслуживаем WebApp (статические файлы)**
+app.use(express.static(path.join(__dirname, "public")));
 
-    if (diff <= 0) {
-        return "⏳ Время истекло!";
-    }
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-    return `${days} д. ${hours} ч. ${minutes} м. ${seconds} с.`;
-}
-
-// **Обработчик команды /start**
-bot.start((ctx) => {
-    const userId = ctx.from.id;
-    
-    if (!usersData[userId]) {
-        let endDate = new Date();
-        endDate.setFullYear(endDate.getFullYear() + 1);
-
-        usersData[userId] = {
-            username: ctx.from.username || `User${userId}`,
-            endTime: endDate.getTime(),
-            points: 0,
-            lastCheckIn: null,
-        };
-        saveData();
-    }
-
-    ctx.reply(
-        `Привет, ${ctx.from.first_name}! 🚀\n\n` +
-        `Ты запустил таймер, осталось:\n\n⏳ *${getTimeLeft(usersData[userId].endTime)}* ⏳\n\n` +
-        `Твой баланс: *${usersData[userId].points}* баллов.\n\n` +
-        `Нажми кнопку, чтобы открыть WebApp и начать зарабатывать баллы!`,
-        {
-            parse_mode: "Markdown",
-            reply_markup: {
-                inline_keyboard: [[
-                    { text: "🚀 Открыть WebApp", web_app: { url: process.env.WEBAPP_URL } }
-                ]]
-            }
-        }
-    );
+// **Перенаправляем `/` на `index.html`**
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// **Команда /points — показывает баланс пользователя**
-bot.command("points", (ctx) => {
-    const userId = ctx.from.id;
-    if (!usersData[userId]) {
-        return ctx.reply("Ты ещё не запустил таймер! Используй /start.");
-    }
-    ctx.reply(`⭐ Твой баланс: *${usersData[userId].points}* баллов`, { parse_mode: "Markdown" });
-});
-
-// **API для WebApp (получение данных о таймере и балансе)**
+// **API для получения данных пользователя**
 app.get("/api/user/:userId", (req, res) => {
     const userId = req.params.userId;
     if (!usersData[userId]) {
@@ -95,7 +44,7 @@ app.get("/api/user/:userId", (req, res) => {
     });
 });
 
-// **Обработчик получения баллов за нажатие на "GO"**
+// **API для начисления баллов**
 app.post("/api/user/:userId/add-points", express.json(), (req, res) => {
     const userId = req.params.userId;
     if (!usersData[userId]) {
@@ -106,21 +55,7 @@ app.post("/api/user/:userId/add-points", express.json(), (req, res) => {
     res.json({ points: usersData[userId].points });
 });
 
-// **Обработчик GET-запросов для корневого маршрута `/`**
-app.get("/", (req, res) => {
-    res.send("Привет! WebApp работает корректно. 🚀");
-});
-
-// **Подключаем статические файлы для WebApp**
-app.use(express.static(path.join(__dirname, "public")));
-
-// **Настройка Webhook**
-app.use(express.json());
-app.post(WEBHOOK_PATH, (req, res) => {
-    bot.handleUpdate(req.body, res);
-});
-
-// **Запускаем Webhook-сервер**
+// **Запускаем сервер**
 app.listen(PORT, async () => {
     console.log(`Сервер запущен на порту ${PORT}`);
     await bot.telegram.setWebhook(WEBHOOK_URL);
