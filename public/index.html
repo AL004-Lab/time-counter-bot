@@ -8,30 +8,62 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
         }
         #setup, #main {
             display: none;
         }
         #timer-years, #timer-time {
-            font-size: 24px;
+            font-size: 22px;
+            font-weight: bold;
+        }
+        .profile {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .profile img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .profile span {
+            font-size: 18px;
             font-weight: bold;
         }
         button {
-            padding: 10px 20px;
-            font-size: 18px;
+            padding: 12px 20px;
+            font-size: 16px;
             border: none;
-            background: #007bff;
-            color: white;
+            background: var(--tg-theme-button-color, #007bff);
+            color: var(--tg-theme-button-text-color, white);
             cursor: pointer;
-            border-radius: 5px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 300px;
+            margin-top: 10px;
+        }
+        button:active {
+            opacity: 0.8;
         }
     </style>
 </head>
 <body>
 
+    <!-- Аватар и никнейм -->
+    <div class="profile">
+        <img id="avatar" src="default-avatar.png" alt="Avatar">
+        <span id="username">Загрузка...</span>
+    </div>
+
     <!-- Экран настройки -->
     <div id="setup">
-        <h1>🚀 Введите дату рождения</h1>
+        <h2>🚀 Введите дату рождения</h2>
         <input type="date" id="birthdate">
         <br><br>
         <button id="startButton">Старт</button>
@@ -39,7 +71,7 @@
 
     <!-- Основной экран с таймером -->
     <div id="main">
-        <h1>⏳ Таймер</h1>
+        <h2>⏳ Таймер</h2>
         <p id="timer-years">Загрузка...</p>
         <p id="timer-time"></p>
         <button id="goButton">GO (0)</button>
@@ -50,6 +82,11 @@
         tg.expand();
 
         const userId = tg.initDataUnsafe?.user?.id || "test";
+        const username = tg.initDataUnsafe?.user?.username || "User";
+        const avatar = tg.initDataUnsafe?.user?.photo_url || "default-avatar.png";
+
+        document.getElementById("username").innerText = `@${username}`;
+        document.getElementById("avatar").src = avatar;
 
         async function checkUser() {
             let response = await fetch(`/api/user/${userId}`);
