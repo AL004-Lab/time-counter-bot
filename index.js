@@ -55,14 +55,17 @@ app.post("/api/user/:userId/setup", express.json(), (req, res) => {
 app.get("/api/user/:userId", (req, res) => {
     const userId = req.params.userId;
 
-    if (!usersData[userId] || !usersData[userId].endTime) {
-        return res.status(404).json({ error: "Пользователь не настроен" });
+    if (!usersData[userId]) {
+        usersData[userId] = {
+            endTime: Date.now() + 365 * 24 * 60 * 60 * 1000, // Устанавливаем таймер на 1 год
+            points: 0
+        };
+        saveData();
     }
 
     res.json({
-        birthDate: usersData[userId].birthDate,
         endTime: usersData[userId].endTime,
-        points: usersData[userId].points || 0,
+        points: usersData[userId].points
     });
 });
 

@@ -33,49 +33,47 @@
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
-
-        const userId = tg.initDataUnsafe?.user?.id || "test"; // Используем реальный ID
-
-        function updateTimer() {
-            fetch(`/api/user/${userId}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (!data.endTime || !data.points) {
-                        document.getElementById("timer").innerText = "Ошибка загрузки данных";
-                        return;
-                    }
-
-                    let diff = data.endTime - Date.now();
-                    if (diff <= 0) {
-                        document.getElementById("timer").innerText = "⏳ Время истекло!";
-                        return;
-                    }
-
-                    let days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                    let seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-                    document.getElementById("timer").innerText = `${days} д. ${hours} ч. ${minutes} м. ${seconds} с.`;
-                    document.getElementById("goButton").innerText = `GO (${data.points})`;
-                })
-                .catch(error => {
-                    document.getElementById("timer").innerText = "Ошибка подключения";
-                    console.error("Ошибка получения данных:", error);
-                });
+    
+        const userId = tg.initDataUnsafe?.user?.id || "test"; // Фиксируем userId
+    
+        async function updateTimer() {
+            try {
+                let response = await fetch(`/api/user/${userId}`);
+                let data = await response.json();
+    
+                if (!data.endTime || !data.points) {
+                    document.getElementById("timer").innerText = "Ошибка загрузки данных";
+                    return;
+                }
+    
+                let diff = data.endTime - Date.now();
+                if (diff <= 0) {
+                    document.getElementById("timer").innerText = "⏳ Время истекло!";
+                    return;
+                }
+    
+                let days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                let seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+                document.getElementById("timer").innerText = `${days} д. ${hours} ч. ${minutes} м. ${seconds} с.`;
+                document.getElementById("goButton").innerText = `GO (${data.points})`;
+            } catch (error) {
+                document.getElementById("timer").innerText = "Ошибка подключения";
+            }
         }
-
-        document.getElementById("goButton").addEventListener("click", () => {
-            fetch(`/api/user/${userId}/add-points`, { method: "POST" })
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById("goButton").innerText = `GO (${data.points})`;
-                })
-                .catch(error => {
-                    console.error("Ошибка начисления баллов:", error);
-                });
+    
+        document.getElementById("goButton").addEventListener("click", async () => {
+            try {
+                let response = await fetch(`/api/user/${userId}/add-points`, { method: "POST" });
+                let data = await response.json();
+                document.getElementById("goButton").innerText = `GO (${data.points})`;
+            } catch (error) {
+                console.error("Ошибка начисления баллов:", error);
+            }
         });
-
+    
         setInterval(updateTimer, 1000);
         updateTimer();
     </script>
