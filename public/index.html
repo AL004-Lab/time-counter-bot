@@ -24,8 +24,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px;
-            width: 100%;
+            padding: 10px 15px;
+            width: calc(100% - 30px);
         }
         .header .profile {
             display: flex;
@@ -76,14 +76,6 @@
         </div>
     </div>
 
-    <!-- Экран настройки -->
-    <div id="setup">
-        <h2>🚀 Введите дату рождения</h2>
-        <input type="date" id="birthdate">
-        <br><br>
-        <button id="startButton">Старт</button>
-    </div>
-
     <!-- Основной экран с таймером -->
     <div id="main">
         <h2>⏳ Таймер</h2>
@@ -103,47 +95,15 @@
         document.getElementById("username").innerText = `@${username}`;
         document.getElementById("avatar").src = avatar;
 
-        async function checkUser() {
+        async function updateTimer() {
             let response = await fetch(`/api/user/${userId}`);
             let data = await response.json();
 
             if (!data.endTime) {
-                document.getElementById("setup").style.display = "block";
-            } else {
-                document.getElementById("main").style.display = "block";
-                updateTimer();
-                setInterval(updateTimer, 1000);
-            }
-        }
-
-        document.getElementById("startButton").addEventListener("click", async () => {
-            let birthdate = document.getElementById("birthdate").value;
-            if (!birthdate) {
-                alert("Введите дату рождения!");
+                document.getElementById("timer-years").innerText = "⏳ Таймер не установлен";
+                document.getElementById("timer-time").innerText = "";
                 return;
             }
-
-            let birthYear = new Date(birthdate).getFullYear();
-            let currentYear = new Date().getFullYear();
-            let age = currentYear - birthYear;
-            let remainingYears = 100 - age;
-            let endTime = Date.now() + remainingYears * 365 * 24 * 60 * 60 * 1000;
-
-            await fetch(`/api/user/${userId}/setup`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ endTime })
-            });
-
-            document.getElementById("setup").style.display = "none";
-            document.getElementById("main").style.display = "block";
-            updateTimer();
-            setInterval(updateTimer, 1000);
-        });
-
-        async function updateTimer() {
-            let response = await fetch(`/api/user/${userId}`);
-            let data = await response.json();
 
             let diff = data.endTime - Date.now();
             if (diff <= 0) {
@@ -160,9 +120,9 @@
             let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             let seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-            document.getElementById("timer-years").innerText = `Осталось: ${years} лет, ${weeks} недель, ${days} дней`;
+            document.getElementById("timer-years").innerText = `${years} лет, ${weeks} недель, ${days} дней`;
             document.getElementById("timer-time").innerText = `${hours} ч. ${minutes} м. ${seconds} с.`;
-            document.getElementById("balance").innerText = `${data.points}`;
+            document.getElementById("balance").innerText = `${data.points || 0}`;
         }
 
         document.getElementById("goButton").addEventListener("click", async () => {
@@ -170,6 +130,19 @@
             let data = await response.json();
             document.getElementById("balance").innerText = `${data.points}`;
         });
+
+        async function checkUser() {
+            let response = await fetch(`/api/user/${userId}`);
+            let data = await response.json();
+
+            if (!data.endTime) {
+                document.getElementById("setup").style.display = "block";
+            } else {
+                document.getElementById("main").style.display = "block";
+                updateTimer();
+                setInterval(updateTimer, 1000);
+            }
+        }
 
         checkUser();
     </script>

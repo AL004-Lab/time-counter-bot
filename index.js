@@ -37,12 +37,13 @@ app.get("/api/user/:userId", (req, res) => {
     const userId = req.params.userId;
 
     if (!usersData[userId]) {
-        return res.status(404).json({ error: "Пользователь не найден" });
+        usersData[userId] = { endTime: Date.now() + 365 * 24 * 60 * 60 * 1000, points: 0 };
+        saveData();
     }
 
     res.json({
         endTime: usersData[userId].endTime,
-        points: usersData[userId].points
+        points: usersData[userId].points || 0
     });
 });
 
