@@ -2,155 +2,97 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title id="title">Таймер</title>
+    <title>Таймер</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 0;
-            padding: 20px;
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-        }
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 15px;
-            width: calc(100% - 30px);
-        }
-        .header .profile {
-            display: flex;
-            align-items: center;
-        }
-        .header img {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
-        .header .balance {
-            font-size: 18px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-        }
-        .header .balance span {
-            margin-left: 5px;
-        }
-        button {
-            padding: 12px 20px;
-            font-size: 16px;
-            border: none;
-            background: var(--tg-theme-button-color, #007bff);
-            color: var(--tg-theme-button-text-color, white);
-            cursor: pointer;
-            border-radius: 8px;
-            width: 80%;
-            max-width: 300px;
-            margin-top: 10px;
-        }
+        body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 20px; }
+        button { padding: 10px 15px; font-size: 16px; border: none; background: #007bff; color: white; cursor: pointer; border-radius: 8px; margin: 10px; }
+        #hacks-list { margin-top: 20px; }
+        .hack-item { display: flex; justify-content: space-between; padding: 10px; background: #f5f5f5; border-radius: 5px; margin-top: 5px; }
+        .chat-box { display: none; margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+        input, select { padding: 5px; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-    <!-- Хедер -->
-    <div class="header">
-        <div class="profile">
-            <img id="avatar" src="default-avatar.png" alt="Avatar">
-            <span id="username">Загрузка...</span>
-        </div>
-        <div class="balance">
-            <span id="balance-label">🏺</span> <span id="balance">0</span>
-        </div>
+    <h2>⏳ Таймер</h2>
+    <p id="timer">Загрузка...</p>
+    <button id="goButton">GO</button>
+    <button id="assistantButton">Подключить ассистента</button>
+
+    <div id="hacks-list"></div>
+
+    <div id="hack-modal" style="display: none;">
+        <h3>Создать Хак</h3>
+        <input id="hack-input" type="text" placeholder="Введите цель">
+        <select id="hack-duration">
+            <option value="1800000">30 минут</option>
+            <option value="3600000">1 час</option>
+            <option value="86400000">1 день</option>
+            <option value="604800000">1 неделя</option>
+            <option value="2592000000">1 месяц</option>
+            <option value="157680000000">5 лет</option>
+        </select>
+        <button id="saveHack">Сохранить</button>
     </div>
 
-    <!-- Таймер -->
-    <div id="main">
-        <h2 id="title-header">⏳ Таймер</h2>
-        <p id="timer-years">Загрузка...</p>
-        <p id="timer-time"></p>
-        <button id="goButton">GO</button>
+    <div id="chat-box" class="chat-box">
+        <h3>💬 Чат с ассистентом</h3>
+        <input id="chat-input" type="text" placeholder="Напишите сообщение...">
+        <button id="sendMessage">Отправить</button>
+        <p id="chat-response"></p>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Определение языка пользователя
-        let userLang = tg.initDataUnsafe?.user?.language_code || "en";
-        if (!["ru", "en"].includes(userLang)) userLang = "en"; // Если язык не поддерживается, ставим английский
+        let hacks = [];
 
-        // Словарь перевода
-        const translations = {
-            en: {
-                title: "Timer",
-                balance: "🏺",
-                go: "GO",
-                notSet: "⏳ Timer is not set",
-                expired: "⏳ Time has expired",
-            },
-            ru: {
-                title: "Таймер",
-                balance: "🏺",
-                go: "GO",
-                notSet: "⏳ Таймер не установлен",
-                expired: "⏳ Время истекло",
-            }
-        };
-
-        // Применение перевода
-        document.getElementById("title").innerText = translations[userLang].title;
-        document.getElementById("title-header").innerText = translations[userLang].title;
-        document.getElementById("balance-label").innerText = translations[userLang].balance;
-        document.getElementById("goButton").innerText = translations[userLang].go;
-
-        const userId = tg.initDataUnsafe?.user?.id || "test";
-        const username = tg.initDataUnsafe?.user?.username || `User${userId}`;
-        const avatar = tg.initDataUnsafe?.user?.photo_url || "default-avatar.png";
-
-        document.getElementById("username").innerText = `@${username}`;
-        document.getElementById("avatar").src = avatar;
-
-        async function updateTimer() {
-            let response = await fetch(`/api/user/${userId}`);
-            let data = await response.json();
-
-            if (!data.endTime) {
-                document.getElementById("timer-years").innerText = translations[userLang].notSet;
-                document.getElementById("timer-time").innerText = "";
-                return;
-            }
-
-            let diff = data.endTime - Date.now();
-            if (diff <= 0) {
-                document.getElementById("timer-years").innerText = translations[userLang].expired;
-                document.getElementById("timer-time").innerText = "";
-                return;
-            }
-
-            let years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365));
-            let weeks = Math.floor((diff % (1000 * 60 * 60 * 24 * 365)) / (1000 * 60 * 60 * 24 * 7));
-            let days = Math.floor((diff % (1000 * 60 * 60 * 24 * 7)) / (1000 * 60 * 60 * 24));
-
-            let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            let seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-            document.getElementById("timer-years").innerText = `${years} лет, ${weeks} недель, ${days} дней`;
-            document.getElementById("timer-time").innerText = `${hours} ч. ${minutes} м. ${seconds} с.`;
-            document.getElementById("balance").innerText = `${data.points || 0}`;
-        }
-
-        document.getElementById("goButton").addEventListener("click", async () => {
-            let response = await fetch(`/api/user/${userId}/add-points`, { method: "POST" });
-            let data = await response.json();
-            document.getElementById("balance").innerText = `${data.points}`;
+        document.getElementById("assistantButton").addEventListener("click", () => {
+            document.getElementById("hack-modal").style.display = "block";
         });
 
-        setInterval(updateTimer, 1000);
-        updateTimer();
+        document.getElementById("saveHack").addEventListener("click", () => {
+            let text = document.getElementById("hack-input").value;
+            let duration = document.getElementById("hack-duration").value;
+            let deadline = Date.now() + parseInt(duration);
+            hacks.push({ text, deadline });
+
+            updateHacksList();
+            document.getElementById("hack-modal").style.display = "none";
+        });
+
+        function updateHacksList() {
+            let list = document.getElementById("hacks-list");
+            list.innerHTML = "";
+
+            hacks.slice(-3).forEach((hack, index) => {
+                let diff = hack.deadline - Date.now();
+                let hours = Math.floor(diff / (1000 * 60 * 60));
+                let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                let seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                let div = document.createElement("div");
+                div.className = "hack-item";
+                div.innerHTML = `<span>${hack.text}</span> <span>${hours} ч. ${minutes} м. ${seconds} с.</span>`;
+                list.appendChild(div);
+            });
+        }
+
+        setInterval(updateHacksList, 1000);
+
+        document.getElementById("sendMessage").addEventListener("click", async () => {
+            let message = document.getElementById("chat-input").value;
+            let response = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: tg.initDataUnsafe?.user?.id, message })
+            });
+            let data = await response.json();
+            document.getElementById("chat-response").innerText = data.message;
+        });
+
     </script>
 
 </body>
