@@ -51,6 +51,9 @@
             max-width: 300px;
             margin-top: 10px;
         }
+        .buttons {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -71,7 +74,10 @@
         <h2 id="title-header">⏳ Таймер</h2>
         <p id="timer-years">Загрузка...</p>
         <p id="timer-time"></p>
-        <button id="goButton">GO</button>
+        <div class="buttons">
+            <button id="goButton">GO</button>
+            <button onclick="window.location.href='/hacks.html'">📌 Мои Хаки</button>
+        </div>
     </div>
 
     <script>

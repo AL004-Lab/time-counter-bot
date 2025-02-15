@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Мои Хаки</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+        .hack-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: left;
+        }
+        .hack-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .hack-timer {
+            font-weight: bold;
+            color: #d9534f;
+        }
+        input, select, button {
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📌 Мои Хаки</h1>
+
+    <!-- Форма для добавления нового хака -->
+    <input type="text" id="hack-description" placeholder="Введите описание хака">
+    <select id="hack-duration">
+        <option value="86400000">1 день</option>
+        <option value="604800000">1 неделя</option>
+        <option value="2592000000">1 месяц</option>
+        <option value="31536000000">1 год</option>
+        <option value="157680000000">5 лет</option>
+    </select>
+    <button onclick="addHack()">Добавить Хак</button>
+
+    <h2>⏳ Активные Хаки</h2>
+    <div class="hack-list" id="hack-list"></div>
+
+    <button onclick="goBack()">🔙 Вернуться</button>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        const userId = tg.initDataUnsafe?.user?.id || "test";
+
+        async function loadHacks() {
+            let response = await fetch(`/api/user/${userId}/hacks`);
+            let data = await response.json();
+            let list = document.getElementById("hack-list");
+            list.innerHTML = "";
+
+            data.hacks.forEach(hack => {
+                let diff = hack.deadline - Date.now();
+                let days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+                let div = document.createElement("div");
+                div.className = "hack-item";
+                div.innerHTML = `<span>${hack.text}</span> <span class="hack-timer">${days} д. ${hours} ч.</span>`;
+                list.appendChild(div);
+            });
+        }
+
+        async function addHack() {
+            let description = document.getElementById("hack-description").value;
+            let duration = document.getElementById("hack-duration").value;
+
+            if (!description) {
+                alert("Введите описание хака!");
+                return;
+            }
+
+            await fetch(`/api/user/${userId}/hacks`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: description, duration })
+            });
+
+            loadHacks();
+            document.getElementById("hack-description").value = "";
+        }
+
+        function goBack() {
+            window.location.href = "/index.html";
+        }
+
+        loadHacks();
+    </script>
+
+</body>
+</html>

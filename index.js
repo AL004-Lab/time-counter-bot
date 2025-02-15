@@ -39,8 +39,9 @@ app.get("/api/user/:userId", (req, res) => {
 
     if (!usersData[userId]) {
         usersData[userId] = {
-            endTime: null, // Теперь значение отсутствует до настройки
-            points: 0
+            endTime: null, // Таймер не установлен до настройки
+            points: 0,
+            hacks: []
         };
         saveData();
     }
@@ -68,7 +69,7 @@ app.post("/api/user/:userId/setup", (req, res) => {
     const { endTime } = req.body;
 
     if (!usersData[userId]) {
-        usersData[userId] = { points: 0 };
+        usersData[userId] = { points: 0, hacks: [] };
     }
 
     usersData[userId].endTime = endTime;
@@ -76,11 +77,38 @@ app.post("/api/user/:userId/setup", (req, res) => {
     res.json({ success: true });
 });
 
-// 📌 API: Сброс всех пользователей (обнуление данных и редирект на setup.html)
+// 📌 API: Сброс всех пользователей (обнуление данных)
 app.post("/api/users/reset", (req, res) => {
     usersData = {};
     saveData();
-    res.json({ success: true, message: "Все данные пользователей сброшены", redirect: "/setup.html" });
+    res.json({ success: true, message: "Все данные пользователей сброшены" });
+});
+
+// 📌 API: Получение списка хаков пользователя
+app.get("/api/user/:userId/hacks", (req, res) => {
+    const userId = req.params.userId;
+
+    if (!usersData[userId]) {
+        usersData[userId] = { endTime: null, points: 0, hacks: [] };
+        saveData();
+    }
+
+    res.json({ hacks: usersData[userId].hacks });
+});
+
+// 📌 API: Добавление нового хака
+app.post("/api/user/:userId/hacks", (req, res) => {
+    const { userId } = req.params;
+    const { text, duration } = req.body;
+
+    if (!usersData[userId]) return res.status(404).json({ error: "Пользователь не найден" });
+
+    const deadline = Date.now() + parseInt(duration);
+    usersData[userId].hacks.push({ text, deadline });
+    usersData[userId].hacks.sort((a, b) => a.deadline - b.deadline); // Сортировка по актуальности
+    saveData();
+
+    res.json({ success: true, hacks: usersData[userId].hacks });
 });
 
 // 📌 Запуск сервера
