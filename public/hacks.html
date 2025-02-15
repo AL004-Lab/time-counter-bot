@@ -85,14 +85,40 @@
             document.getElementById("custom-time").style.display = this.value === "custom" ? "block" : "none";
         });
 
+        let hacks = [];
+
         async function loadHacks() {
             let response = await fetch(`/api/user/${userId}/hacks`);
             let data = await response.json();
+            hacks = data.hacks;
+            renderHacks();
+        }
+
+        function renderHacks() {
             let list = document.getElementById("hack-list");
             list.innerHTML = "";
 
-            data.hacks.forEach(hack => {
-                let diff = hack.deadline - Date.now();
+            hacks.forEach(hack => {
+                let div = document.createElement("div");
+                div.className = "hack-item";
+                div.innerHTML = `<span>${hack.text}</span> 
+                                 <span class="hack-timer" data-deadline="${hack.deadline}"></span>`;
+                list.appendChild(div);
+            });
+
+            updateTimers(); // Обновляем таймеры сразу
+        }
+
+        function updateTimers() {
+            let timers = document.querySelectorAll(".hack-timer");
+            timers.forEach(timer => {
+                let deadline = parseInt(timer.getAttribute("data-deadline"));
+                let diff = deadline - Date.now();
+
+                if (diff < 0) {
+                    timer.innerText = "00:00:00:00:00:00";
+                    return;
+                }
 
                 let years = addLeadingZero(Math.floor(diff / (1000 * 60 * 60 * 24 * 365)));
                 let months = addLeadingZero(Math.floor((diff % (1000 * 60 * 60 * 24 * 365)) / (1000 * 60 * 60 * 24 * 30)));
@@ -101,11 +127,7 @@
                 let minutes = addLeadingZero(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)));
                 let seconds = addLeadingZero(Math.floor((diff % (1000 * 60)) / 1000));
 
-                let div = document.createElement("div");
-                div.className = "hack-item";
-                div.innerHTML = `<span>${hack.text}</span> 
-                                 <span class="hack-timer">${years}:${months}:${days} ${hours}:${minutes}:${seconds}</span>`;
-                list.appendChild(div);
+                timer.innerText = `${years}:${months}:${days} ${hours}:${minutes}:${seconds}`;
             });
         }
 
@@ -150,6 +172,7 @@
         }
 
         loadHacks();
+        setInterval(updateTimers, 1000); // Обновляем таймеры каждую секунду
     </script>
 
 </body>
