@@ -1,10 +1,10 @@
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const fetch = require("node-fetch");
 const fs = require("fs");
 const path = require("path");
-require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,108 +18,72 @@ const DATA_FILE = "usersData.json";
 
 // Загружаем данные из файла при старте сервера
 if (fs.existsSync(DATA_FILE)) {
-    usersData = JSON.parse(fs.readFileSync(DATA_FILE));
+  usersData = JSON.parse(fs.readFileSync(DATA_FILE));
 } else {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(usersData));
+  fs.writeFileSync(DATA_FILE, JSON.stringify(usersData));
 }
 
 // Функция для сохранения данных
 function saveData() {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(usersData));
+  fs.writeFileSync(DATA_FILE, JSON.stringify(usersData));
 }
 
 // 📌 Главная страница
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // 📌 API: Получение данных пользователя
 app.get("/api/user/:userId", (req, res) => {
-    const userId = req.params.userId;
+  const userId = req.params.userId;
 
-    if (!usersData[userId]) {
-        usersData[userId] = {
-            endTime: Date.now() + 365 * 24 * 60 * 60 * 1000,
-            points: 0,
-            hacks: []
-        };
-        saveData();
-    }
+  if (!usersData[userId]) {
+    usersData[userId] = {
+      endTime: Date.now() + 365 * 24 * 60 * 60 * 1000, // По умолчанию 1 год
+      points: 0
+    };
+    saveData();
+  }
 
-    res.json({
-        endTime: usersData[userId].endTime,
-        points: usersData[userId].points,
-        hacks: usersData[userId].hacks.slice(-3)
-    });
+  res.json({
+    endTime: usersData[userId].endTime,
+    points: usersData[userId].points
+  });
 });
 
 // 📌 API: Добавление очков пользователю
 app.post("/api/user/:userId/add-points", (req, res) => {
-    const userId = req.params.userId;
-    if (!usersData[userId]) return res.status(404).json({ error: "User not found" });
+  const userId = req.params.userId;
+  if (!usersData[userId]) return res.status(404).json({ error: "User not found" });
 
-    usersData[userId].points += 1;
-    saveData();
+  usersData[userId].points += 1;
+  saveData();
 
-    res.json({ points: usersData[userId].points });
+  res.json({ points: usersData[userId].points });
 });
 
-// 📌 API: Создание нового "Хака"
-app.post("/api/user/:userId/add-hack", (req, res) => {
-    const { userId } = req.params;
-    const { text, duration } = req.body;
+// 📌 API: Установка таймера (рассчитывается на основе возраста)
+app.post("/api/user/:userId/setup", (req, res) => {
+  const userId = req.params.userId;
+  const { endTime } = req.body;
 
-    if (!usersData[userId]) return res.status(404).json({ error: "User not found" });
+  if (!usersData[userId]) {
+    usersData[userId] = { points: 0 };
+  }
 
-    const deadline = Date.now() + parseInt(duration);
-    usersData[userId].hacks.push({ text, deadline });
-    saveData();
-
-    res.json({ success: true, hacks: usersData[userId].hacks.slice(-3) });
+  usersData[userId].endTime = endTime;
+  saveData();
+  res.json({ success: true });
 });
 
-// 📌 API: Чат с ассистентом (OpenAI)
-app.post("/api/chat", async (req, res) => {
-    const { userId, message } = req.body;
-
-    if (!usersData[userId]) return res.status(404).json({ error: "User not found" });
-
-    const prompt = `
-        Пользователь говорит: "${message}". 
-        У него таймер жизни и он ставит перед собой "Хаки". 
-        Он хочет мотивацию и советы. Дай полезный ответ.
-    `;
-
-    try {
-        const response = await fetch("https://api.openai.com/v1/completions", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: "gpt-4",
-                prompt: prompt,
-                max_tokens: 50
-            })
-        });
-
-        const data = await response.json();
-        res.json({ message: data.choices[0].text.trim() });
-    } catch (error) {
-        console.error("Ошибка OpenAI:", error);
-        res.status(500).json({ error: "Ошибка ассистента" });
-    }
-});
-
-// 📌 API: Сброс всех пользователей (удаление всех данных)
+// 📌 API: Сброс всех пользователей (обнуление данных)
 app.post("/api/users/reset", (req, res) => {
-    usersData = {}; // Полностью очищаем объект с пользователями
-    saveData();
-    res.json({ success: true, message: "Все данные пользователей сброшены" });
+  usersData = {};
+  saveData();
+  res.json({ success: true, message: "Все данные пользователей сброшены" });
 });
 
 // 📌 Запуск сервера
 app.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
+  console.log(`Сервер запущен на порту ${PORT}`);
 });

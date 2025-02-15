@@ -8,6 +8,7 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
+            padding: 20px;
         }
         #timer {
             font-size: 24px;
@@ -21,6 +22,7 @@
             color: white;
             cursor: pointer;
             border-radius: 5px;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -41,29 +43,22 @@
                 .then(res => res.json())
                 .then(data => {
                     if (!data.endTime) {
-                        window.location.href = "/setup.html"; // Перенаправление на настройку
+                        document.getElementById("timer").innerText = "⏳ Таймер не установлен";
                         return;
                     }
 
-                    let now = new Date().getTime();
-                    let diff = data.endTime - now;
-
-                    if (diff < 0) {
+                    let diff = data.endTime - Date.now();
+                    if (diff <= 0) {
                         document.getElementById("timer").innerText = "Время истекло!";
                         return;
                     }
 
-                    let years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365));
-                    let weeks = Math.floor((diff % (1000 * 60 * 60 * 24 * 365)) / (1000 * 60 * 60 * 24 * 7));
-                    let days = Math.floor((diff % (1000 * 60 * 60 * 24 * 7)) / (1000 * 60 * 60 * 24));
+                    let days = Math.floor(diff / (1000 * 60 * 60 * 24));
                     let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                     let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                     let seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-                    document.getElementById("timer").innerText = 
-                        `${years} лет, ${weeks} недель, ${days} дней\n` +
-                        `${hours} ч. ${minutes} м. ${seconds} с.`;
-
+                    document.getElementById("timer").innerText = `${days} д. ${hours} ч. ${minutes} м. ${seconds} с.`;
                     document.getElementById("goButton").innerText = `GO (${data.points})`;
                 });
         }

@@ -8,6 +8,7 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
+            padding: 20px;
         }
         input, button {
             font-size: 18px;
@@ -46,12 +47,12 @@
             fetch(`/api/user/${userId}/setup`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ endTime }),
+                body: JSON.stringify({ endTime })
             })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    window.location.href = "/timer.html"; // Переход на основную страницу таймера
+                    window.location.href = "/timer.html"; // Переход на страницу таймера
                 } else {
                     alert("Ошибка: " + data.error);
                 }
