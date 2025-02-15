@@ -38,6 +38,10 @@
             margin-top: 10px;
             font-size: 16px;
         }
+        .buttons {
+            display: flex;
+            gap: 5px;
+        }
     </style>
 </head>
 <body>
@@ -55,7 +59,6 @@
         <option value="custom">📅 Указать вручную</option>
     </select>
 
-    <!-- Ввод сроков вручную -->
     <div id="custom-time" style="display: none;">
         <input type="number" id="years" placeholder="ГГ" min="0">
         <input type="number" id="months" placeholder="ММ" min="0">
@@ -85,36 +88,42 @@
             document.getElementById("custom-time").style.display = this.value === "custom" ? "block" : "none";
         });
 
-        let hacks = [];
-
         async function loadHacks() {
             let response = await fetch(`/api/user/${userId}/hacks`);
             let data = await response.json();
-            hacks = data.hacks;
-            renderHacks();
-        }
-
-        function renderHacks() {
             let list = document.getElementById("hack-list");
             list.innerHTML = "";
 
-            hacks.forEach(hack => {
+            data.hacks.forEach((hack, index) => {
                 let div = document.createElement("div");
                 div.className = "hack-item";
-                div.innerHTML = `<span>${hack.text}</span> 
-                                 <span class="hack-timer" data-deadline="${hack.deadline}"></span>`;
+                div.innerHTML = `
+                    <span>${hack.text}</span> 
+                    <span class="hack-timer" data-id="${index}" data-deadline="${hack.deadline}" data-frozen="${hack.frozen || false}"></span>
+                    <div class="buttons">
+                        <button onclick="toggleHack(${index})">${hack.frozen ? "▶️ Разморозить" : "⏸ Заморозить"}</button>
+                        <button onclick="deleteHack(${index})">🗑 Удалить</button>
+                    </div>
+                `;
                 list.appendChild(div);
             });
 
-            updateTimers(); // Обновляем таймеры сразу
+            updateTimers();
         }
 
         function updateTimers() {
             let timers = document.querySelectorAll(".hack-timer");
             timers.forEach(timer => {
+                let id = timer.getAttribute("data-id");
                 let deadline = parseInt(timer.getAttribute("data-deadline"));
-                let diff = deadline - Date.now();
+                let frozen = timer.getAttribute("data-frozen") === "true";
 
+                if (frozen) {
+                    timer.innerText = "⏸ Заморожено";
+                    return;
+                }
+
+                let diff = deadline - Date.now();
                 if (diff < 0) {
                     timer.innerText = "00:00:00:00:00:00";
                     return;
@@ -131,30 +140,23 @@
             });
         }
 
+        async function toggleHack(index) {
+            await fetch(`/api/user/${userId}/hacks/${index}/toggle`, { method: "POST" });
+            loadHacks();
+        }
+
+        async function deleteHack(index) {
+            await fetch(`/api/user/${userId}/hacks/${index}/delete`, { method: "DELETE" });
+            loadHacks();
+        }
+
         async function addHack() {
             let description = document.getElementById("hack-description").value;
-            let durationSelect = document.getElementById("hack-duration");
-            let duration = durationSelect.value;
+            let duration = document.getElementById("hack-duration").value;
 
             if (!description) {
                 alert("Введите описание хака!");
                 return;
-            }
-
-            if (duration === "custom") {
-                let years = parseInt(document.getElementById("years").value) || 0;
-                let months = parseInt(document.getElementById("months").value) || 0;
-                let days = parseInt(document.getElementById("days").value) || 0;
-                let hours = parseInt(document.getElementById("hours").value) || 0;
-                let minutes = parseInt(document.getElementById("minutes").value) || 0;
-                let seconds = parseInt(document.getElementById("seconds").value) || 0;
-
-                duration = (years * 365 * 24 * 60 * 60 * 1000) +
-                           (months * 30 * 24 * 60 * 60 * 1000) +
-                           (days * 24 * 60 * 60 * 1000) +
-                           (hours * 60 * 60 * 1000) +
-                           (minutes * 60 * 1000) +
-                           (seconds * 1000);
             }
 
             await fetch(`/api/user/${userId}/hacks`, {
@@ -172,7 +174,7 @@
         }
 
         loadHacks();
-        setInterval(updateTimers, 1000); // Обновляем таймеры каждую секунду
+        setInterval(updateTimers, 1000);
     </script>
 
 </body>

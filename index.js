@@ -39,7 +39,7 @@ app.get("/api/user/:userId", (req, res) => {
 
     if (!usersData[userId]) {
         usersData[userId] = {
-            endTime: null, // Таймер не установлен до настройки
+            endTime: null,
             points: 0,
             hacks: []
         };
@@ -63,7 +63,7 @@ app.post("/api/user/:userId/add-points", (req, res) => {
     res.json({ points: usersData[userId].points });
 });
 
-// 📌 API: Установка таймера (рассчитывается на основе возраста)
+// 📌 API: Установка таймера
 app.post("/api/user/:userId/setup", (req, res) => {
     const userId = req.params.userId;
     const { endTime } = req.body;
@@ -104,11 +104,34 @@ app.post("/api/user/:userId/hacks", (req, res) => {
     if (!usersData[userId]) return res.status(404).json({ error: "Пользователь не найден" });
 
     const deadline = Date.now() + parseInt(duration);
-    usersData[userId].hacks.push({ text, deadline });
-    usersData[userId].hacks.sort((a, b) => a.deadline - b.deadline); // Сортировка по актуальности
+    usersData[userId].hacks.push({ text, deadline, frozen: false });
+    usersData[userId].hacks.sort((a, b) => a.deadline - b.deadline);
     saveData();
 
     res.json({ success: true, hacks: usersData[userId].hacks });
+});
+
+// 📌 API: Заморозка и разморозка хака
+app.post("/api/user/:userId/hacks/:index/toggle", (req, res) => {
+    const { userId, index } = req.params;
+    if (!usersData[userId] || !usersData[userId].hacks[index]) return res.status(404).json({ error: "Хак не найден" });
+
+    let hack = usersData[userId].hacks[index];
+    hack.frozen = !hack.frozen;
+
+    saveData();
+    res.json({ success: true, frozen: hack.frozen });
+});
+
+// 📌 API: Удаление хака
+app.delete("/api/user/:userId/hacks/:index/delete", (req, res) => {
+    const { userId, index } = req.params;
+    if (!usersData[userId]) return res.status(404).json({ error: "Пользователь не найден" });
+
+    usersData[userId].hacks.splice(index, 1);
+    saveData();
+
+    res.json({ success: true });
 });
 
 // 📌 Запуск сервера
