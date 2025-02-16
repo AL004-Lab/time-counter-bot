@@ -5,126 +5,82 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Мои Хаки</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .hack-input {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+        }
+        button {
+            background-color: var(--tg-theme-button-color, #0088cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            cursor: pointer;
+        }
+        button:active {
+            opacity: 0.8;
+        }
+        .hack-list {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .hack-item {
+            background: var(--tg-theme-secondary-bg-color, #f9f9f9);
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .back-button {
+            width: 100%;
+            background: #cccccc;
+            color: #000;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>📌 Мои Хаки</h1>
-
         <div class="hack-input">
             <input type="text" id="hack-description" placeholder="Введите описание хака" required>
             <input type="datetime-local" id="hack-deadline" min="" required>
             <button id="add-hack">Добавить Хак</button>
         </div>
-
         <h2>⏳ Активные Хаки</h2>
         <div id="hacks-list" class="hack-list"></div>
-
         <button id="back-button" class="back-button">⬅ Вернуться</button>
     </div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            setMinDate();
-            loadHacks();
-        });
-
-        function setMinDate() {
-            const now = new Date().toISOString().slice(0, 16);
-            document.getElementById("hack-deadline").setAttribute("min", now);
-        }
-
-        function loadHacks() {
-            const userId = localStorage.getItem("userId");
-            fetch(`/api/user/${userId}/hacks`)
-                .then(response => response.json())
-                .then(data => {
-                    const hacksList = document.getElementById("hacks-list");
-                    hacksList.innerHTML = "";
-
-                    data.hacks.forEach((hack, index) => {
-                        const hackItem = document.createElement("div");
-                        hackItem.classList.add("hack-item");
-
-                        const title = document.createElement("span");
-                        title.textContent = hack.text;
-
-                        const timer = document.createElement("span");
-                        timer.classList.add("hack-timer");
-                        timer.setAttribute("data-deadline", hack.deadline);
-                        timer.textContent = formatTime(hack.deadline);
-
-                        const freezeButton = document.createElement("button");
-                        freezeButton.textContent = hack.frozen ? "▶️ Разморозить" : "⏸ Заморозить";
-                        freezeButton.classList.add("freeze-button");
-                        freezeButton.onclick = () => toggleFreeze(index);
-
-                        const deleteButton = document.createElement("button");
-                        deleteButton.textContent = "🗑 Удалить";
-                        deleteButton.classList.add("delete-button");
-                        deleteButton.onclick = () => deleteHack(index);
-
-                        hackItem.appendChild(title);
-                        hackItem.appendChild(timer);
-                        hackItem.appendChild(freezeButton);
-                        hackItem.appendChild(deleteButton);
-                        hacksList.appendChild(hackItem);
-                    });
-                });
-        }
-
-        function addHack() {
-            const description = document.getElementById("hack-description").value.trim();
-            const deadline = document.getElementById("hack-deadline").value;
-            const userId = localStorage.getItem("userId");
-
-            if (!description || !deadline) {
-                alert("Введите описание и выберите дату!");
-                return;
-            }
-
-            fetch(`/api/user/${userId}/hacks`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: description, deadline: new Date(deadline).getTime() })
-            }).then(() => {
-                loadHacks();
-                document.getElementById("hack-description").value = "";
-                document.getElementById("hack-deadline").value = "";
-            });
-        }
-
-        function toggleFreeze(index) {
-            const userId = localStorage.getItem("userId");
-            fetch(`/api/user/${userId}/hacks/${index}/toggle`, { method: "POST" })
-                .then(() => loadHacks());
-        }
-
-        function deleteHack(index) {
-            const userId = localStorage.getItem("userId");
-            fetch(`/api/user/${userId}/hacks/${index}/delete`, { method: "DELETE" })
-                .then(() => loadHacks());
-        }
-
-        function formatTime(deadline) {
-            const now = new Date().getTime();
-            const remaining = deadline - now;
-
-            if (remaining <= 0) return "00:00:00";
-
-            const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-
-            return `${days} д. ${hours}:${minutes}:${seconds}`;
-        }
-
-        setInterval(() => {
-            document.querySelectorAll(".hack-timer").forEach(timer => {
-                const deadline = parseInt(timer.getAttribute("data-deadline"));
-                timer.textContent = formatTime(deadline);
-            });
-        }, 1000);
-    </script>
+    <script src="hacks.js"></script>
 </body>
 </html>
