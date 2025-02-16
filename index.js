@@ -99,11 +99,10 @@ app.get("/api/user/:userId/hacks", (req, res) => {
 // 📌 API: Добавление нового хака
 app.post("/api/user/:userId/hacks", (req, res) => {
     const { userId } = req.params;
-    const { text, duration } = req.body;
+    const { text, deadline } = req.body;
 
     if (!usersData[userId]) return res.status(404).json({ error: "Пользователь не найден" });
 
-    const deadline = Date.now() + parseInt(duration);
     usersData[userId].hacks.push({ text, deadline, frozen: false });
     usersData[userId].hacks.sort((a, b) => a.deadline - b.deadline);
     saveData();
