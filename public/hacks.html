@@ -81,6 +81,54 @@
         <div id="hacks-list" class="hack-list"></div>
         <button id="back-button" class="back-button">⬅ Вернуться</button>
     </div>
-    <script src="hacks.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const hackDescriptionInput = document.getElementById("hack-description");
+            const hackDeadlineInput = document.getElementById("hack-deadline");
+            const addHackButton = document.getElementById("add-hack");
+            const hacksList = document.getElementById("hacks-list");
+
+            // Установка минимальной даты для выбора
+            const now = new Date().toISOString().slice(0, 16);
+            hackDeadlineInput.min = now;
+
+            // Функция добавления хака
+            function addHack() {
+                const description = hackDescriptionInput.value.trim();
+                const deadline = hackDeadlineInput.value;
+
+                if (!description || !deadline) {
+                    alert("Заполните все поля!");
+                    return;
+                }
+
+                const hackItem = document.createElement("div");
+                hackItem.classList.add("hack-item");
+                hackItem.innerHTML = `
+                    <span>${description} - ⏳ ${new Date(deadline).toLocaleString()}</span>
+                    <button class="delete-hack">🗑</button>
+                `;
+
+                hacksList.appendChild(hackItem);
+
+                // Очистка полей ввода после добавления
+                hackDescriptionInput.value = "";
+                hackDeadlineInput.value = "";
+
+                // Удаление хака
+                hackItem.querySelector(".delete-hack").addEventListener("click", function () {
+                    hacksList.removeChild(hackItem);
+                });
+            }
+
+            // Обработчик кнопки "Добавить Хак"
+            addHackButton.addEventListener("click", addHack);
+
+            // Кнопка "Вернуться"
+            document.getElementById("back-button").addEventListener("click", function () {
+                window.history.back();
+            });
+        });
+    </script>
 </body>
 </html>
