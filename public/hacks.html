@@ -26,9 +26,15 @@
             align-items: center;
             margin-bottom: 5px;
         }
+        .hack-title {
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+        }
         .hack-timer {
             font-weight: bold;
             color: #d9534f;
+            font-size: 18px;
         }
         .button-group {
             display: flex;
@@ -78,7 +84,7 @@
                 let div = document.createElement("div");
                 div.className = "hack-item";
                 div.innerHTML = `
-                    <span>${hack.text}</span>
+                    <span class="hack-title">${hack.text}</span>
                     <span class="hack-timer" data-id="${index}" data-deadline="${hack.deadline}" data-frozen="${hack.frozen || false}"></span>
                     <div class="button-group">
                         <button class="freeze-btn" onclick="toggleHack(${index})">${hack.frozen ? "▶️ Разморозить" : "⏸ Заморозить"}</button>
