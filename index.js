@@ -39,7 +39,7 @@ app.get("/api/user/:userId/hacks", (req, res) => {
     res.json({ hacks: usersData[userId].hacks });
 });
 
-// 📌 API: Добавление нового хака (теперь с сохранением в файл)
+// 📌 API: Добавление нового хака (сохранение в файл)
 app.post("/api/user/:userId/hacks", (req, res) => {
     const { userId } = req.params;
     const { text, deadline } = req.body;
@@ -49,18 +49,18 @@ app.post("/api/user/:userId/hacks", (req, res) => {
     }
 
     usersData[userId].hacks.push({ text, deadline, frozen: false });
-    saveData();  // Теперь хаки сохраняются в usersData.json
+    saveData();
 
     res.json({ success: true, hacks: usersData[userId].hacks });
 });
 
-// 📌 API: Удаление хака (теперь с сохранением в файл)
+// 📌 API: Удаление хака (сохранение в файл)
 app.delete("/api/user/:userId/hacks/:index/delete", (req, res) => {
     const { userId, index } = req.params;
     if (!usersData[userId]) return res.status(404).json({ error: "Пользователь не найден" });
 
     usersData[userId].hacks.splice(index, 1);
-    saveData();  // Теперь удаление хака сохраняется в usersData.json
+    saveData();
 
     res.json({ success: true });
 });
