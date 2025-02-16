@@ -27,6 +27,45 @@ function saveData() {
     fs.writeFileSync(DATA_FILE, JSON.stringify(usersData, null, 2));
 }
 
+// 📌 API: Получение данных пользователя
+app.get("/api/user/:userId", (req, res) => {
+    const userId = req.params.userId;
+
+    if (!usersData[userId]) {
+        usersData[userId] = { endTime: null, points: 0, hacks: [] };
+        saveData();
+    }
+
+    res.json(usersData[userId]);
+});
+
+// 📌 API: Установка таймера пользователя
+app.post("/api/user/:userId/setup", (req, res) => {
+    const { userId } = req.params;
+    const { endTime } = req.body;
+
+    if (!usersData[userId]) {
+        usersData[userId] = { endTime: null, points: 0, hacks: [] };
+    }
+
+    usersData[userId].endTime = endTime;
+    saveData();
+    res.json({ success: true, endTime });
+});
+
+// 📌 API: Добавление баллов
+app.post("/api/user/:userId/add-points", (req, res) => {
+    const { userId } = req.params;
+
+    if (!usersData[userId]) {
+        usersData[userId] = { endTime: null, points: 0, hacks: [] };
+    }
+
+    usersData[userId].points += 1;
+    saveData();
+    res.json({ success: true, points: usersData[userId].points });
+});
+
 // 📌 API: Получение списка хаков пользователя
 app.get("/api/user/:userId/hacks", (req, res) => {
     const userId = req.params.userId;
@@ -39,7 +78,7 @@ app.get("/api/user/:userId/hacks", (req, res) => {
     res.json({ hacks: usersData[userId].hacks });
 });
 
-// 📌 API: Добавление нового хака (сохранение в файл)
+// 📌 API: Добавление нового хака
 app.post("/api/user/:userId/hacks", (req, res) => {
     const { userId } = req.params;
     const { text, deadline } = req.body;
@@ -50,18 +89,16 @@ app.post("/api/user/:userId/hacks", (req, res) => {
 
     usersData[userId].hacks.push({ text, deadline, frozen: false });
     saveData();
-
     res.json({ success: true, hacks: usersData[userId].hacks });
 });
 
-// 📌 API: Удаление хака (сохранение в файл)
+// 📌 API: Удаление хака
 app.delete("/api/user/:userId/hacks/:index/delete", (req, res) => {
     const { userId, index } = req.params;
     if (!usersData[userId]) return res.status(404).json({ error: "Пользователь не найден" });
 
     usersData[userId].hacks.splice(index, 1);
     saveData();
-
     res.json({ success: true });
 });
 
