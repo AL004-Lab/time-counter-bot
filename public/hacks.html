@@ -5,108 +5,110 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Мои Хаки</title>
     <link rel="stylesheet" href="styles.css">
-    <script defer src="scripts.js"></script>
 </head>
 <body>
     <div class="container">
         <h1>📌 Мои Хаки</h1>
         
-        <!-- Форма для добавления нового хака -->
+        <!-- Форма добавления нового хака -->
         <div class="hack-input">
-            <input type="text" id="hackDescription" placeholder="Введите описание хака">
-            <input type="datetime-local" id="hackDeadline">
-            <button onclick="addHack()">Добавить Хак</button>
+            <input type="text" id="hack-description" placeholder="Введите описание хака">
+            <input type="datetime-local" id="hack-deadline">
+            <button id="add-hack">Добавить Хак</button>
         </div>
 
-        <!-- Раздел с активными хаками -->
+        <!-- Список активных хаков -->
         <h2>⏳ Активные Хаки</h2>
-        <div id="activeHacks"></div>
-        
-        <button onclick="goBack()">⬅ Вернуться</button>
+        <div id="hacks-list" class="hacks-list"></div>
+
+        <button id="back-button" class="back-button">⬅ Вернуться</button>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            loadHacks();
-        });
-
-        function addHack() {
-            let description = document.getElementById("hackDescription").value.trim();
-            let deadline = document.getElementById("hackDeadline").value;
-
-            if (!description) {
-                alert("Введите описание хака!");
-                return;
-            }
-
-            if (!deadline) {
-                alert("Выберите дату и время!");
-                return;
-            }
-
-            // Преобразование введенной даты в миллисекунды
-            let selectedTime = new Date(deadline).getTime();
-            let currentTime = Date.now();
-
-            // Проверка на установку в прошлом
-            if (selectedTime <= currentTime) {
-                alert("Нельзя установить хак в прошлом!");
-                return;
-            }
-
-            let hack = {
-                description: description,
-                deadline: selectedTime,
-                frozen: false
-            };
-
-            saveHack(hack);
-            document.getElementById("hackDescription").value = "";
-            document.getElementById("hackDeadline").value = "";
-        }
-
-        function saveHack(hack) {
-            let hacks = JSON.parse(localStorage.getItem("hacks")) || [];
-            hacks.push(hack);
-            localStorage.setItem("hacks", JSON.stringify(hacks));
-            loadHacks();
-        }
-
-        function loadHacks() {
-            let hacks = JSON.parse(localStorage.getItem("hacks")) || [];
-            let container = document.getElementById("activeHacks");
-            container.innerHTML = "";
-
-            hacks.forEach((hack, index) => {
-                let timeLeft = hack.deadline - Date.now();
-                let hours = Math.floor(timeLeft / (1000 * 60 * 60));
-                let minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-                let seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-
-                let hackElement = document.createElement("div");
-                hackElement.classList.add("hack-item");
-                hackElement.innerHTML = `
-                    <div>
-                        <strong>${hack.description}</strong>
-                        <span>${hours}:${minutes}:${seconds}</span>
-                    </div>
-                    <button onclick="deleteHack(${index})">🗑 Удалить</button>
-                `;
-
-                container.appendChild(hackElement);
+        document.addEventListener("DOMContentLoaded", function () {
+            const hackDescription = document.getElementById("hack-description");
+            const hackDeadline = document.getElementById("hack-deadline");
+            const addHackButton = document.getElementById("add-hack");
+            const hacksList = document.getElementById("hacks-list");
+            const backButton = document.getElementById("back-button");
+            
+            // Отключение выбора даты в прошлом
+            const now = new Date().toISOString().slice(0, 16);
+            hackDeadline.setAttribute("min", now);
+            
+            addHackButton.addEventListener("click", () => {
+                const description = hackDescription.value.trim();
+                const deadline = hackDeadline.value;
+                
+                if (!description || !deadline) {
+                    alert("Введите описание и выберите дату!");
+                    return;
+                }
+                
+                const hack = {
+                    text: description,
+                    deadline: new Date(deadline).getTime(),
+                    frozen: false
+                };
+                
+                addHackToList(hack);
+                hackDescription.value = "";
+                hackDeadline.value = "";
             });
-        }
-
-        function deleteHack(index) {
-            let hacks = JSON.parse(localStorage.getItem("hacks")) || [];
-            hacks.splice(index, 1);
-            localStorage.setItem("hacks", JSON.stringify(hacks));
-            loadHacks();
-        }
-
-        function goBack() {
-            window.location.href = "index.html";
-        }
+            
+            function addHackToList(hack) {
+                const hackItem = document.createElement("div");
+                hackItem.classList.add("hack-item");
+                
+                const title = document.createElement("span");
+                title.textContent = hack.text;
+                
+                const timer = document.createElement("span");
+                timer.classList.add("hack-timer");
+                
+                const freezeButton = document.createElement("button");
+                freezeButton.textContent = "⏸ Заморозить";
+                freezeButton.classList.add("freeze-button");
+                
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "🗑 Удалить";
+                deleteButton.classList.add("delete-button");
+                
+                hackItem.appendChild(title);
+                hackItem.appendChild(timer);
+                hackItem.appendChild(freezeButton);
+                hackItem.appendChild(deleteButton);
+                hacksList.appendChild(hackItem);
+                
+                startHackTimer(hack, timer);
+            }
+            
+            function startHackTimer(hack, timerElement) {
+                function updateTimer() {
+                    const now = new Date().getTime();
+                    const remaining = hack.deadline - now;
+                    
+                    if (remaining <= 0) {
+                        timerElement.textContent = "00:00:00";
+                        clearInterval(timerInterval);
+                        return;
+                    }
+                    
+                    const hours = String(Math.floor(remaining / (1000 * 60 * 60))).padStart(2, '0');
+                    const minutes = String(Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+                    const seconds = String(Math.floor((remaining % (1000 * 60)) / 1000)).padStart(2, '0');
+                    
+                    timerElement.textContent = `${hours}:${minutes}:${seconds}`;
+                }
+                
+                updateTimer();
+                const timerInterval = setInterval(updateTimer, 1000);
+            }
+            
+            backButton.addEventListener("click", () => {
+                window.location.href = "index.html";
+            });
+        });
     </script>
 </body>
 </html>
