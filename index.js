@@ -102,6 +102,18 @@ app.delete("/api/user/:userId/hacks/:index/delete", (req, res) => {
     res.json({ success: true });
 });
 
+// 📌 API: Заморозка/разморозка хака
+app.post("/api/user/:userId/hacks/:index/toggle-freeze", (req, res) => {
+    const { userId, index } = req.params;
+    if (!usersData[userId] || !usersData[userId].hacks[index]) {
+        return res.status(404).json({ error: "Хак не найден" });
+    }
+
+    usersData[userId].hacks[index].frozen = !usersData[userId].hacks[index].frozen;
+    saveData();
+    res.json({ success: true, frozen: usersData[userId].hacks[index].frozen });
+});
+
 // 📌 Запуск сервера
 app.listen(PORT, () => {
     console.log(`Сервер запущен на порту ${PORT}`);
