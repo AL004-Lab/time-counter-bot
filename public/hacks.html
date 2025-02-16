@@ -5,115 +5,172 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Мои Хаки</title>
     <style>
+        /* Основные стили */
         body {
             font-family: Arial, sans-serif;
             background-color: #121212;
             color: #fff;
             text-align: center;
+            margin: 0;
+            padding: 0;
         }
+
+        /* Контейнер с отступами */
         .container {
             width: 90%;
-            margin: auto;
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 15px;
+            border-radius: 10px;
         }
+
+        /* Заголовки */
         h1, h2 {
             margin: 10px 0;
+            font-size: 22px;
         }
+
+        /* Поля ввода */
         .hack-input {
             display: flex;
-            justify-content: center;
-            margin-bottom: 10px;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
         }
+
         .hack-input input {
-            margin: 5px;
-            padding: 8px;
+            padding: 10px;
             font-size: 16px;
             border-radius: 5px;
+            border: none;
+            width: 100%;
         }
+
+        /* Кнопки */
+        .btn {
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .btn-add {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-freeze {
+            background: #0057b7;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #d32f2f;
+            color: white;
+        }
+
+        /* Карточка хака */
         .hack-container {
             background: #1e1e1e;
             padding: 10px;
             margin: 10px 0;
-            border-radius: 5px;
+            border-radius: 8px;
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
             align-items: center;
+            text-align: center;
         }
+
+        /* Таймер */
         .hack-timer {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
             color: red;
+            margin-bottom: 8px;
         }
-        .btn {
-            padding: 5px 10px;
-            font-size: 14px;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
+
+        /* Кнопки управления хаком */
+        .hack-buttons {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
         }
-        .btn-freeze {
-            background: blue;
-            color: white;
-        }
-        .btn-delete {
-            background: red;
-            color: white;
+
+        /* Медиа-запрос для адаптации на маленьких экранах */
+        @media (max-width: 400px) {
+            h1, h2 {
+                font-size: 18px;
+            }
+            .btn {
+                font-size: 14px;
+                padding: 8px;
+            }
+            .hack-timer {
+                font-size: 16px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>📌 Мои Хаки</h1>
-        
-        <!-- Поле ввода названия хака и выбора даты -->
+
+        <!-- Поле ввода хака -->
         <div class="hack-input">
             <input type="text" id="hack-name" placeholder="Введите описание хака">
             <input type="datetime-local" id="hack-deadline">
-            <button class="btn" onclick="addHack()">Добавить Хак</button>
+            <button class="btn btn-add" onclick="addHack()">Добавить Хак</button>
         </div>
 
         <h2>⏳ Активные Хаки</h2>
 
-        <!-- Контейнер для отображения списка хаков -->
+        <!-- Контейнер активных хаков -->
         <div id="hacks-list"></div>
     </div>
 
     <script>
         /**
-         * Загружает хаки пользователя из локального хранилища.
+         * Загружает хаки пользователя
          */
         function loadHacks() {
             let hacks = JSON.parse(localStorage.getItem("hacks")) || [];
             let container = document.getElementById("hacks-list");
-            container.innerHTML = ""; // Очистка перед обновлением
+            container.innerHTML = "";
 
             hacks.forEach((hack, index) => {
                 let hackDiv = document.createElement("div");
                 hackDiv.className = "hack-container";
 
                 hackDiv.innerHTML = `
-                    <span>${hack.name}</span>
+                    <span><b>${hack.name}</b></span>
                     <span class="hack-timer" data-deadline="${hack.deadline}" data-frozen="${hack.frozen}">--:--:--:--</span>
-                    <button class="btn btn-freeze" onclick="freezeHack(${index})">⏸ Заморозить</button>
-                    <button class="btn btn-delete" onclick="deleteHack(${index})">🗑 Удалить</button>
+                    <div class="hack-buttons">
+                        <button class="btn btn-freeze" onclick="freezeHack(${index})">⏸ Заморозить</button>
+                        <button class="btn btn-delete" onclick="deleteHack(${index})">🗑 Удалить</button>
+                    </div>
                 `;
 
                 container.appendChild(hackDiv);
             });
 
-            updateTimers(); // Обновить таймеры при загрузке
+            updateTimers();
         }
 
         /**
-         * Устанавливает минимально допустимую дату для хака (текущий момент).
+         * Устанавливает минимальную дату на текущий момент
          */
         function setMinDate() {
             let now = new Date();
-            let formattedDate = now.toISOString().slice(0, 16); // Формат YYYY-MM-DDTHH:MM
+            let formattedDate = now.toISOString().slice(0, 16);
             document.getElementById("hack-deadline").min = formattedDate;
         }
 
         /**
-         * Добавляет новый хак в список.
+         * Добавляет новый хак
          */
         function addHack() {
             let name = document.getElementById("hack-name").value.trim();
@@ -126,7 +183,6 @@
                 return;
             }
 
-            // Проверяем, чтобы дата была не в прошлом
             if (deadline < now) {
                 alert("Вы не можете установить хак в прошлое!");
                 return;
@@ -136,11 +192,11 @@
             hacks.push({ name, deadline, frozen: false });
             localStorage.setItem("hacks", JSON.stringify(hacks));
 
-            loadHacks(); // Перезагрузить список хаков
+            loadHacks();
         }
 
         /**
-         * Замораживает/размораживает хак.
+         * Замораживает/размораживает хак
          */
         function freezeHack(index) {
             let hacks = JSON.parse(localStorage.getItem("hacks")) || [];
@@ -150,7 +206,7 @@
         }
 
         /**
-         * Удаляет хак из списка.
+         * Удаляет хак
          */
         function deleteHack(index) {
             let hacks = JSON.parse(localStorage.getItem("hacks")) || [];
@@ -160,7 +216,7 @@
         }
 
         /**
-         * Обновляет таймеры для всех хаков.
+         * Обновляет таймеры
          */
         function updateTimers() {
             let timers = document.querySelectorAll(".hack-timer");
@@ -179,7 +235,6 @@
                     return;
                 }
 
-                // Конвертация времени в "дд:чч:мм:сс" и добавление ведущих нулей
                 let days = String(Math.floor(diff / (1000 * 60 * 60 * 24))).padStart(2, '0');
                 let hours = String(Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
                 let minutes = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
@@ -189,10 +244,7 @@
             });
         }
 
-        // Запуск обновления таймеров каждую секунду
         setInterval(updateTimers, 1000);
-
-        // Устанавливаем минимальную дату при загрузке страницы
         window.onload = function () {
             setMinDate();
             loadHacks();
