@@ -59,13 +59,19 @@
                 let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                 let seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
+                // Добавляем ведущий ноль
+                hours = hours.toString().padStart(2, "0");
+                minutes = minutes.toString().padStart(2, "0");
+                seconds = seconds.toString().padStart(2, "0");
+
                 timer.innerText = `${hours}:${minutes}:${seconds}`;
             });
         }
 
         async function addHack() {
             let description = document.getElementById("hack-description").value;
-            let deadline = new Date(document.getElementById("hack-deadline").value).getTime();
+            let deadlineInput = document.getElementById("hack-deadline").value;
+            let deadline = new Date(deadlineInput).getTime();
 
             if (!description || isNaN(deadline)) {
                 alert("Заполните описание и установите срок!");
