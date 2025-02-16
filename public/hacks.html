@@ -84,10 +84,12 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             loadHacks();
+            document.getElementById("add-hack").addEventListener("click", addHack);
+            document.getElementById("back-button").addEventListener("click", () => window.history.back());
         });
 
         function loadHacks() {
-            const userId = localStorage.getItem("userId");
+            const userId = localStorage.getItem("userId") || "default";
             fetch(`/api/user/${userId}/hacks`)
                 .then(response => response.json())
                 .then(data => {
@@ -119,7 +121,7 @@
         }
 
         function addHack() {
-            const userId = localStorage.getItem("userId");
+            const userId = localStorage.getItem("userId") || "default";
             const description = document.getElementById("hack-description").value.trim();
             const deadline = document.getElementById("hack-deadline").value;
 
@@ -140,7 +142,7 @@
         }
 
         function deleteHack(index) {
-            const userId = localStorage.getItem("userId");
+            const userId = localStorage.getItem("userId") || "default";
             fetch(`/api/user/${userId}/hacks/${index}/delete`, { method: "DELETE" })
                 .then(() => loadHacks());
         }
