@@ -2,101 +2,149 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Мои Хаки</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #fff;
             text-align: center;
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
         }
-        .hack-list {
-            max-height: 400px;
-            overflow-y: auto;
-            padding: 10px;
-            text-align: left;
+        .container {
+            width: 90%;
+            margin: auto;
         }
-        .hack-item {
+        h1, h2 {
+            margin: 10px 0;
+        }
+        .hack-input {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .hack-input input {
+            margin: 5px;
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+        .hack-container {
+            background: #1e1e1e;
             padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
+            margin: 10px 0;
+            border-radius: 5px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 5px;
-        }
-        .hack-title {
-            font-weight: bold;
-            color: #333;
-            font-size: 16px;
         }
         .hack-timer {
+            font-size: 20px;
             font-weight: bold;
-            color: #d9534f;
-            font-size: 18px;
+            color: red;
         }
-        .button-group {
-            display: flex;
-            gap: 10px;
-        }
-        button {
-            padding: 8px;
+        .btn {
+            padding: 5px 10px;
+            font-size: 14px;
             border: none;
             cursor: pointer;
             border-radius: 5px;
         }
-        .delete-btn {
-            background-color: red;
+        .btn-freeze {
+            background: blue;
             color: white;
         }
-        .freeze-btn {
-            background-color: blue;
+        .btn-delete {
+            background: red;
             color: white;
         }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h1>📌 Мои Хаки</h1>
+        
+        <!-- Поле ввода названия хака и выбора даты -->
+        <div class="hack-input">
+            <input type="text" id="hack-name" placeholder="Введите описание хака">
+            <input type="datetime-local" id="hack-deadline">
+            <button class="btn" onclick="addHack()">Добавить Хак</button>
+        </div>
 
-    <h1>📌 Мои Хаки</h1>
+        <h2>⏳ Активные Хаки</h2>
 
-    <input type="text" id="hack-description" placeholder="Введите описание хака">
-    <input type="datetime-local" id="hack-deadline">
-    <button onclick="addHack()">Добавить Хак</button>
-
-    <h2>⏳ Активные Хаки</h2>
-    <div class="hack-list" id="hack-list"></div>
-
-    <button onclick="goBack()">🔙 Вернуться</button>
+        <!-- Контейнер для отображения списка хаков -->
+        <div id="hacks-list"></div>
+    </div>
 
     <script>
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-        const userId = tg.initDataUnsafe?.user?.id || "test";
+        /**
+         * Загружает хаки пользователя из локального хранилища.
+         */
+        function loadHacks() {
+            let hacks = JSON.parse(localStorage.getItem("hacks")) || [];
+            let container = document.getElementById("hacks-list");
+            container.innerHTML = ""; // Очистка перед обновлением
 
-        async function loadHacks() {
-            let response = await fetch(`/api/user/${userId}/hacks`);
-            let data = await response.json();
-            let list = document.getElementById("hack-list");
-            list.innerHTML = "";
+            hacks.forEach((hack, index) => {
+                let hackDiv = document.createElement("div");
+                hackDiv.className = "hack-container";
 
-            data.hacks.forEach((hack, index) => {
-                let div = document.createElement("div");
-                div.className = "hack-item";
-                div.innerHTML = `
-                    <span class="hack-title">${hack.text}</span>
-                    <span class="hack-timer" data-id="${index}" data-deadline="${hack.deadline}" data-frozen="${hack.frozen || false}"></span>
-                    <div class="button-group">
-                        <button class="freeze-btn" onclick="toggleHack(${index})">${hack.frozen ? "▶️ Разморозить" : "⏸ Заморозить"}</button>
-                        <button class="delete-btn" onclick="deleteHack(${index})">🗑 Удалить</button>
-                    </div>
+                hackDiv.innerHTML = `
+                    <span>${hack.name}</span>
+                    <span class="hack-timer" data-deadline="${hack.deadline}" data-frozen="${hack.frozen}">--:--:--:--</span>
+                    <button class="btn btn-freeze" onclick="freezeHack(${index})">⏸ Заморозить</button>
+                    <button class="btn btn-delete" onclick="deleteHack(${index})">🗑 Удалить</button>
                 `;
-                list.appendChild(div);
+
+                container.appendChild(hackDiv);
             });
 
-            updateTimers();
+            updateTimers(); // Обновить таймеры при загрузке
         }
 
+        /**
+         * Добавляет новый хак в список.
+         */
+        function addHack() {
+            let name = document.getElementById("hack-name").value.trim();
+            let deadline = new Date(document.getElementById("hack-deadline").value).getTime();
+
+            if (!name || isNaN(deadline)) {
+                alert("Введите корректные данные!");
+                return;
+            }
+
+            let hacks = JSON.parse(localStorage.getItem("hacks")) || [];
+            hacks.push({ name, deadline, frozen: false });
+            localStorage.setItem("hacks", JSON.stringify(hacks));
+
+            loadHacks(); // Перезагрузить список хаков
+        }
+
+        /**
+         * Замораживает/размораживает хак.
+         */
+        function freezeHack(index) {
+            let hacks = JSON.parse(localStorage.getItem("hacks")) || [];
+            hacks[index].frozen = !hacks[index].frozen;
+            localStorage.setItem("hacks", JSON.stringify(hacks));
+            loadHacks();
+        }
+
+        /**
+         * Удаляет хак из списка.
+         */
+        function deleteHack(index) {
+            let hacks = JSON.parse(localStorage.getItem("hacks")) || [];
+            hacks.splice(index, 1);
+            localStorage.setItem("hacks", JSON.stringify(hacks));
+            loadHacks();
+        }
+
+        /**
+         * Обновляет таймеры для всех хаков.
+         */
         function updateTimers() {
             let timers = document.querySelectorAll(".hack-timer");
             timers.forEach(timer => {
@@ -110,54 +158,25 @@
 
                 let diff = deadline - Date.now();
                 if (diff < 0) {
-                    timer.innerText = "00:00:00";
+                    timer.innerText = "00:00:00:00";
                     return;
                 }
 
-                let hours = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, '0');
+                // Конвертация времени в "дд:чч:мм:сс" и добавление ведущих нулей
+                let days = String(Math.floor(diff / (1000 * 60 * 60 * 24))).padStart(2, '0');
+                let hours = String(Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
                 let minutes = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
                 let seconds = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0');
 
-                timer.innerText = `${hours}:${minutes}:${seconds}`;
+                timer.innerText = `${days}:${hours}:${minutes}:${seconds}`;
             });
         }
 
-        async function addHack() {
-            let description = document.getElementById("hack-description").value;
-            let deadlineInput = document.getElementById("hack-deadline").value;
-            let deadline = new Date(deadlineInput).getTime();
-
-            if (!description || isNaN(deadline)) {
-                alert("Заполните описание и установите срок!");
-                return;
-            }
-
-            await fetch(`/api/user/${userId}/hacks`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: description, deadline })
-            });
-
-            loadHacks();
-        }
-
-        async function toggleHack(index) {
-            await fetch(`/api/user/${userId}/hacks/${index}/toggle`, { method: "POST" });
-            loadHacks();
-        }
-
-        async function deleteHack(index) {
-            await fetch(`/api/user/${userId}/hacks/${index}/delete`, { method: "DELETE" });
-            loadHacks();
-        }
-
-        function goBack() {
-            window.location.href = "/index.html";
-        }
-
-        loadHacks();
+        // Запуск обновления таймеров каждую секунду
         setInterval(updateTimers, 1000);
-    </script>
 
+        // Загрузка списка хаков при открытии страницы
+        window.onload = loadHacks;
+    </script>
 </body>
 </html>
