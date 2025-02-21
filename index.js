@@ -51,6 +51,21 @@ app.post('/api/user/:userId/setup', (req, res) => {
     res.json({ success: true });
 });
 
+// 📌 API: Начисление баллов по кнопке GO
+app.post("/api/user/:userId/add-points", (req, res) => {
+    const users = loadUsers();
+    const { userId } = req.params;
+
+    if (!users[userId]) {
+        users[userId] = { endTime: null, points: 0, hacks: [] };
+    }
+
+    users[userId].points += 1; // ✅ Исправлено: теперь баланс увеличивается
+    saveUsers(users); // ✅ Исправлено: теперь обновление баланса сохраняется в usersData.json
+
+    res.json({ success: true, points: users[userId].points }); // ✅ Отправляем новый баланс на фронтенд
+});
+
 // Добавление хаков
 app.post('/api/user/:userId/hacks', (req, res) => {
     const users = loadUsers();
