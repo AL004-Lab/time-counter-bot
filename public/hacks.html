@@ -84,6 +84,7 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             loadHacks();
+            document.getElementById("back-button").addEventListener("click", () => window.history.back());
         });
 
         function loadHacks() {
@@ -137,26 +138,6 @@
                 document.getElementById("hack-description").value = "";
                 document.getElementById("hack-deadline").value = "";
             });
-        }
-
-        function deleteHack(index) {
-            const userId = localStorage.getItem("userId");
-            fetch(`/api/user/${userId}/hacks/${index}/delete`, { method: "DELETE" })
-                .then(() => loadHacks());
-        }
-
-        function formatTime(deadline) {
-            const now = new Date().getTime();
-            const remaining = deadline - now;
-
-            if (remaining <= 0) return "00:00:00";
-
-            const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-
-            return `${days} д. ${hours}:${minutes}:${seconds}`;
         }
     </script>
 </body>
