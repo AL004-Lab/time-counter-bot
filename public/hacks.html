@@ -75,20 +75,23 @@
         <div class="hack-input">
             <input type="text" id="hack-description" placeholder="Введите описание хака" required>
             <input type="datetime-local" id="hack-deadline" min="" required>
-            <button id="add-hack">Добавить Хак</button>
+            <button id="add-hack" onclick="addHack()">Добавить Хак</button>
         </div>
         <h2>⏳ Активные Хаки</h2>
         <div id="hacks-list" class="hack-list"></div>
-        <button id="back-button" class="back-button">⬅ Вернуться</button>
+        <button id="back-button" class="back-button" onclick="window.history.back()">⬅ Вернуться</button>
     </div>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             loadHacks();
-            document.getElementById("back-button").addEventListener("click", () => window.history.back());
         });
 
         function loadHacks() {
             const userId = localStorage.getItem("userId");
+            if (!userId) {
+                alert("Ошибка: не найден userId. Попробуйте заново авторизоваться.");
+                return;
+            }
             fetch(`/api/user/${userId}/hacks`)
                 .then(response => response.json())
                 .then(data => {
@@ -116,7 +119,8 @@
                         hackItem.appendChild(deleteButton);
                         hacksList.appendChild(hackItem);
                     });
-                });
+                })
+                .catch(error => console.error("Ошибка загрузки хаков:", error));
         }
 
         function addHack() {
@@ -133,11 +137,13 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ text: description, deadline: new Date(deadline).getTime() })
-            }).then(() => {
+            })
+            .then(() => {
                 loadHacks();
                 document.getElementById("hack-description").value = "";
                 document.getElementById("hack-deadline").value = "";
-            });
+            })
+            .catch(error => console.error("Ошибка добавления хака:", error));
         }
     </script>
 </body>
