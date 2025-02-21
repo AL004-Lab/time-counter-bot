@@ -1,88 +1,92 @@
 require("dotenv").config();
-const express = require("express");
-const bodyParser = require("body-parser");
-const cors = require("cors");
-const fs = require("fs");
-const path = require("path");
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
+const usersFile = path.join(__dirname, 'usersData.json');
 
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.json());
+app.use(express.static('public'));
 
-const DATA_FILE = "usersData.json";
-const BACKUP_FILE = "usersData_backup.json";
-
-let usersData = {};
-
-// Загружаем данные из файла при старте сервера
-function loadData() {
-    if (fs.existsSync(DATA_FILE)) {
-        try {
-            usersData = JSON.parse(fs.readFileSync(DATA_FILE));
-        } catch (error) {
-            console.error("Ошибка чтения JSON, восстанавливаем из резервной копии", error);
-            if (fs.existsSync(BACKUP_FILE)) {
-                usersData = JSON.parse(fs.readFileSync(BACKUP_FILE));
-                fs.writeFileSync(DATA_FILE, JSON.stringify(usersData));
-            } else {
-                usersData = {};
-            }
-        }
-    } else {
-        usersData = {};
+// Функция загрузки данных пользователей
+function loadUsers() {
+    if (!fs.existsSync(usersFile)) {
+        fs.writeFileSync(usersFile, JSON.stringify({}));
     }
+    return JSON.parse(fs.readFileSync(usersFile));
 }
 
-// Функция для сохранения данных в файл
-function saveData() {
-    fs.writeFileSync(BACKUP_FILE, JSON.stringify(usersData, null, 2)); // Создаем резервную копию
-    fs.writeFileSync(DATA_FILE, JSON.stringify(usersData, null, 2));
+// Функция сохранения данных пользователей
+function saveUsers(users) {
+    fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
 }
 
-loadData(); // Загружаем данные при старте
-
-// 📌 API: Получение списка хаков пользователя
-app.get("/api/user/:userId/hacks", (req, res) => {
+// Получение данных пользователя
+app.get('/api/user/:userId', (req, res) => {
+    const users = loadUsers();
     const userId = req.params.userId;
 
-    if (!usersData[userId]) {
-        usersData[userId] = { endTime: null, points: 0, hacks: [] };
-        saveData();
+    if (!users[userId]) {
+        users[userId] = { endTime: null, points: 0, hacks: [] };
+        saveUsers(users);
     }
 
-    res.json({ hacks: usersData[userId].hacks });
+    res.json(users[userId]);
 });
 
-// 📌 API: Добавление нового хака (сохранение в файл)
-app.post("/api/user/:userId/hacks", (req, res) => {
+// Настройка пользователя (добавление времени)
+app.post('/api/user/:userId/setup', (req, res) => {
+    const users = loadUsers();
+    const { userId } = req.params;
+    const { endTime } = req.body;
+
+    if (!users[userId]) {
+        users[userId] = { endTime: null, points: 0, hacks: [] };
+    }
+
+    users[userId].endTime = endTime;
+    saveUsers(users);
+    res.json({ success: true });
+});
+
+// Добавление хаков
+app.post('/api/user/:userId/hacks', (req, res) => {
+    const users = loadUsers();
     const { userId } = req.params;
     const { text, deadline } = req.body;
 
-    if (!usersData[userId]) {
-        usersData[userId] = { endTime: null, points: 0, hacks: [] };
+    if (!users[userId]) {
+        users[userId] = { endTime: null, points: 0, hacks: [] };
     }
 
-    usersData[userId].hacks.push({ text, deadline, frozen: false });
-    saveData(); // Сохраняем изменения
-
-    res.json({ success: true, hacks: usersData[userId].hacks });
+    users[userId].hacks.push({ text, deadline, frozen: false });
+    saveUsers(users);
+    res.json({ success: true, hacks: users[userId].hacks });
 });
 
-// 📌 API: Удаление хака (сохранение в файл)
-app.delete("/api/user/:userId/hacks/:index/delete", (req, res) => {
-    const { userId, index } = req.params;
-    if (!usersData[userId]) return res.status(404).json({ error: "Пользователь не найден" });
+// Получение хаков пользователя
+app.get('/api/user/:userId/hacks', (req, res) => {
+    const users = loadUsers();
+    const { userId } = req.params;
 
-    usersData[userId].hacks.splice(index, 1);
-    saveData(); // Сохраняем изменения
+    res.json({ hacks: users[userId]?.hacks || [] });
+});
+
+// Удаление хака
+app.delete('/api/user/:userId/hacks/:index', (req, res) => {
+    const users = loadUsers();
+    const { userId, index } = req.params;
+
+    if (users[userId] && users[userId].hacks[index]) {
+        users[userId].hacks.splice(index, 1);
+        saveUsers(users);
+    }
 
     res.json({ success: true });
 });
 
-// 📌 Запуск сервера
 app.listen(PORT, () => {
     console.log(`Сервер запущен на порту ${PORT}`);
 });
