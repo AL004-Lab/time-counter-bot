@@ -4,71 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Мои Хаки</title>
-    <link rel="stylesheet" href="styles.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .container {
-            width: 100%;
-            max-width: 400px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        h1, h2 {
-            text-align: center;
-        }
-        .hack-input {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        input, button {
-            width: 100%;
-            padding: 10px;
-            border-radius: 8px;
-            border: none;
-            font-size: 16px;
-        }
-        button {
-            background-color: var(--tg-theme-button-color, #0088cc);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            cursor: pointer;
-        }
-        button:active {
-            opacity: 0.8;
-        }
-        .hack-list {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .hack-item {
-            background: var(--tg-theme-secondary-bg-color, #f9f9f9);
-            padding: 10px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .back-button {
-            width: 100%;
-            background: #cccccc;
-            color: #000;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
@@ -79,8 +16,8 @@
             <button id="add-hack">Добавить Хак</button>
         </div>
         <h2>⏳ Активные Хаки</h2>
-        <div id="hacks-list" class="hack-list"></div>
-        <button id="back-button" class="back-button">⬅ Вернуться</button>
+        <div id="hacks-list"></div>
+        <button id="back-button">⬅ Вернуться</button>
     </div>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -90,18 +27,13 @@
 
         function loadHacks() {
             const userId = localStorage.getItem("userId");
-            if (!userId) {
-                alert("Ошибка: не найден userId. Попробуйте заново авторизоваться.");
-                return;
-            }
-
             fetch(`/api/user/${userId}/hacks`)
                 .then(response => response.json())
                 .then(data => {
                     const hacksList = document.getElementById("hacks-list");
                     hacksList.innerHTML = "";
 
-                    data.hacks.forEach((hack, index) => {
+                    data.hacks.forEach(hack => {
                         const hackItem = document.createElement("div");
                         hackItem.classList.add("hack-item");
 
@@ -114,8 +46,7 @@
 
                         const deleteButton = document.createElement("button");
                         deleteButton.textContent = "🗑 Удалить";
-                        deleteButton.classList.add("delete-button");
-                        deleteButton.onclick = () => deleteHack(index);
+                        deleteButton.onclick = () => deleteHack(hack.id);
 
                         hackItem.appendChild(title);
                         hackItem.appendChild(timer);
@@ -146,16 +77,15 @@
             });
         }
 
-        function deleteHack(index) {
+        function deleteHack(hackId) {
             const userId = localStorage.getItem("userId");
-            fetch(`/api/user/${userId}/hacks/${index}/delete`, { method: "DELETE" })
+            fetch(`/api/user/${userId}/hacks/${hackId}/delete`, { method: "DELETE" })
                 .then(() => loadHacks());
         }
 
         function formatTime(deadline) {
             const now = new Date().getTime();
             const remaining = deadline - now;
-
             if (remaining <= 0) return "00:00:00";
 
             const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
