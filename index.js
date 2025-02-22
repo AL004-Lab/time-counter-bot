@@ -34,21 +34,15 @@ app.use(cors());
 app.use(express.static("public"));
 
 // 📌 Получение данных пользователя
-app.get("/api/user/:userId", (req, res) => {
+app.post('/api/user/:userId/setup', (req, res) => {
     const { userId } = req.params;
-    db.get("SELECT * FROM users WHERE userId = ?", [userId], (err, row) => {
-        if (err) return res.status(500).json({ error: err.message });
-        if (!row) {
-            db.run("INSERT INTO users (userId, endTime, points) VALUES (?, NULL, 0)", [userId], () => {
-                res.json({ userId, endTime: null, points: 0, hacks: [] });
-            });
-        } else {
-            db.all("SELECT * FROM hacks WHERE userId = ?", [userId], (err, hacks) => {
-                if (err) return res.status(500).json({ error: err.message });
-                res.json({ userId, endTime: row.endTime, points: row.points, hacks });
-            });
-        }
-    });
+    const { endTime } = req.body;
+
+    db.run("INSERT INTO users (userId, endTime, points) VALUES (?, ?, 0) ON CONFLICT(userId) DO UPDATE SET endTime = excluded.endTime",
+        [userId, endTime], (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ success: true });
+        });
 });
 
 // 📌 Добавление хака

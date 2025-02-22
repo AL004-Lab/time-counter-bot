@@ -32,29 +32,32 @@
         const userId = tg.initDataUnsafe?.user?.id || "test";
 
         function setupTimer() {
-            const birthDate = document.getElementById("birthDate").value;
-            if (!birthDate) {
-                alert("❌ Укажите дату рождения!");
+            const userId = localStorage.getItem("userId");
+            const birthdate = document.getElementById("birthdate").value;
+
+            if (!birthdate) {
+                alert("Введите дату рождения!");
                 return;
             }
 
-            let birthYear = new Date(birthDate).getFullYear();
-            let currentYear = new Date().getFullYear();
-            let userAge = currentYear - birthYear;
-            let remainingYears = 100 - userAge;
-            let endTime = Date.now() + remainingYears * 365 * 24 * 60 * 60 * 1000;
+            const birthYear = new Date(birthdate).getFullYear();
+            const currentYear = new Date().getFullYear();
+            const age = currentYear - birthYear;
+            const remainingYears = 100 - age;
+            const endTime = Date.now() + remainingYears * 365 * 24 * 60 * 60 * 1000;
 
             fetch(`/api/user/${userId}/setup`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ endTime })
             })
-            .then(res => res.json())
+            .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    window.location.href = "/timer.html"; // Переход на страницу таймера
+                    alert("Таймер установлен!");
+                    window.location.href = "timer.html";
                 } else {
-                    alert("Ошибка: " + data.error);
+                    alert("Ошибка настройки: " + data.error);
                 }
             })
             .catch(error => console.error("Ошибка настройки:", error));
