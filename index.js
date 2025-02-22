@@ -1,105 +1,110 @@
-require("dotenv").config();
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const cors = require('cors');
+const db = require('./database'); // Подключение базы данных SQLite
 
 const app = express();
-const PORT = 3000;
-const usersFile = path.join(__dirname, 'usersData.json');
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static('public'));
+app.use(cors());
+
+const usersDataPath = path.join(__dirname, 'usersData.json');
 
 // Функция загрузки данных пользователей
-function loadUsers() {
-    if (!fs.existsSync(usersFile)) {
-        fs.writeFileSync(usersFile, JSON.stringify({}));
+function loadUsersData() {
+    if (!fs.existsSync(usersDataPath)) {
+        fs.writeFileSync(usersDataPath, JSON.stringify({ users: {} }, null, 2));
     }
-    return JSON.parse(fs.readFileSync(usersFile));
+    return JSON.parse(fs.readFileSync(usersDataPath, 'utf8'));
 }
 
 // Функция сохранения данных пользователей
-function saveUsers(users) {
-    fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+function saveUsersData(data) {
+    fs.writeFileSync(usersDataPath, JSON.stringify(data, null, 2));
 }
 
 // Получение данных пользователя
 app.get('/api/user/:userId', (req, res) => {
-    const users = loadUsers();
-    const userId = req.params.userId;
-
-    if (!users[userId]) {
-        users[userId] = { endTime: null, points: 0, hacks: [] };
-        saveUsers(users);
-    }
-
-    res.json(users[userId]);
+    const { userId } = req.params;
+    const data = loadUsersData();
+    const user = data.users[userId] || { endTime: null, points: 0, hacks: [] };
+    res.json(user);
 });
 
-// Настройка пользователя (добавление времени)
+// Установка времени жизни пользователя
 app.post('/api/user/:userId/setup', (req, res) => {
-    const users = loadUsers();
     const { userId } = req.params;
     const { endTime } = req.body;
+    const data = loadUsersData();
 
-    if (!users[userId]) {
-        users[userId] = { endTime: null, points: 0, hacks: [] };
+    if (!data.users[userId]) {
+        data.users[userId] = { endTime: null, points: 0, hacks: [] };
     }
+    
+    data.users[userId].endTime = endTime;
+    saveUsersData(data);
 
-    users[userId].endTime = endTime;
-    saveUsers(users);
-    res.json({ success: true });
+    res.json({ success: true, endTime });
 });
 
-// 📌 API: Начисление баллов по кнопке GO
-app.post("/api/user/:userId/add-points", (req, res) => {
-    const users = loadUsers();
+// Начисление баланса
+app.post('/api/user/:userId/add-points', (req, res) => {
     const { userId } = req.params;
+    const data = loadUsersData();
 
-    if (!users[userId]) {
-        users[userId] = { endTime: null, points: 0, hacks: [] };
+    if (!data.users[userId]) {
+        return res.status(404).json({ error: "Пользователь не найден" });
     }
 
-    users[userId].points += 1; // ✅ Исправлено: теперь баланс увеличивается
-    saveUsers(users); // ✅ Исправлено: теперь обновление баланса сохраняется в usersData.json
+    data.users[userId].points += 1;
+    saveUsersData(data);
 
-    res.json({ success: true, points: users[userId].points }); // ✅ Отправляем новый баланс на фронтенд
+    res.json({ success: true, points: data.users[userId].points });
 });
 
-// Добавление хаков
+// Получение списка хаков пользователя
+app.get('/api/user/:userId/hacks', (req, res) => {
+    const { userId } = req.params;
+    const data = loadUsersData();
+
+    if (!data.users[userId]) {
+        return res.status(404).json({ error: "Пользователь не найден" });
+    }
+
+    res.json({ hacks: data.users[userId].hacks || [] });
+});
+
+// Добавление хака
 app.post('/api/user/:userId/hacks', (req, res) => {
-    const users = loadUsers();
     const { userId } = req.params;
     const { text, deadline } = req.body;
+    const data = loadUsersData();
 
-    if (!users[userId]) {
-        users[userId] = { endTime: null, points: 0, hacks: [] };
+    if (!data.users[userId]) {
+        return res.status(404).json({ error: "Пользователь не найден" });
     }
 
-    users[userId].hacks.push({ text, deadline, frozen: false });
-    saveUsers(users);
-    res.json({ success: true, hacks: users[userId].hacks });
-});
+    data.users[userId].hacks.push({ text, deadline });
+    saveUsersData(data);
 
-// Получение хаков пользователя
-app.get('/api/user/:userId/hacks', (req, res) => {
-    const users = loadUsers();
-    const { userId } = req.params;
-
-    res.json({ hacks: users[userId]?.hacks || [] });
+    res.json({ success: true, hacks: data.users[userId].hacks });
 });
 
 // Удаление хака
-app.delete('/api/user/:userId/hacks/:index', (req, res) => {
-    const users = loadUsers();
+app.delete('/api/user/:userId/hacks/:index/delete', (req, res) => {
     const { userId, index } = req.params;
+    const data = loadUsersData();
 
-    if (users[userId] && users[userId].hacks[index]) {
-        users[userId].hacks.splice(index, 1);
-        saveUsers(users);
+    if (!data.users[userId] || !data.users[userId].hacks[index]) {
+        return res.status(404).json({ error: "Хак не найден" });
     }
 
-    res.json({ success: true });
+    data.users[userId].hacks.splice(index, 1);
+    saveUsersData(data);
+
+    res.json({ success: true, hacks: data.users[userId].hacks });
 });
 
 app.listen(PORT, () => {
